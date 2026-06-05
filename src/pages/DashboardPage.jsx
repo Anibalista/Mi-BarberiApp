@@ -111,7 +111,9 @@ export default function DashboardPage() {
     <PageShell>
       <section className="dashboard-hero">
         <div>
-          <span className="badge">{sucursal?.nombre || "Sucursal principal"}</span>
+          <span className="badge">
+            {sucursal?.nombre || "Sucursal principal"}
+          </span>
           <h2>Hola, {userName}</h2>
           <p>
             {negocio?.nombre || "Tu barbería"} ya tiene el panel base listo.
