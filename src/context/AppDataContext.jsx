@@ -22,6 +22,14 @@ export function AppDataProvider({ children }) {
 
   async function loadAppData() {
     if (!isAuthenticated || !user?.id) {
+      setPerfil(null);
+      setNegocio(null);
+      setSucursal(null);
+      setColaborador(null);
+      setClientes([]);
+      setServicios([]);
+      setProductos([]);
+      setMediosPago([]);
       setIsAppDataLoading(false);
       return;
     }
@@ -32,39 +40,52 @@ export function AppDataProvider({ children }) {
 
       const { data: perfilData, error: perfilError } = await supabase
         .from("perfiles")
-        .select(
-          `
-          *,
-          negocio:negocios(*),
-          sucursal_actual:sucursales(*)
-        `
-        )
+        .select("*")
         .eq("auth_user_id", user.id)
-        .single();
+        .maybeSingle();
 
-      if (perfilError) throw perfilError;
+      if (perfilError) {
+        throw perfilError;
+      }
+
+      if (!perfilData) {
+        setAppDataError(
+          "Tu usuario inició sesión, pero todavía no tiene un perfil vinculado al negocio."
+        );
+        return;
+      }
 
       setPerfil(perfilData);
-      setNegocio(perfilData?.negocio ?? null);
-      setSucursal(perfilData?.sucursal_actual ?? null);
 
-      const negocioId = perfilData?.negocio_id;
+      const negocioId = perfilData.negocio_id;
+      const sucursalId = perfilData.sucursal_id_actual;
 
       if (!negocioId) {
-        setClientes([]);
-        setServicios([]);
-        setProductos([]);
-        setMediosPago([]);
+        setAppDataError(
+          "Tu perfil existe, pero todavía no está vinculado a un negocio."
+        );
         return;
       }
 
       const [
-        colaboradoresResult,
+        negocioResult,
+        sucursalResult,
+        colaboradorResult,
         clientesResult,
         serviciosResult,
         productosResult,
         mediosPagoResult,
       ] = await Promise.all([
+        supabase.from("negocios").select("*").eq("id", negocioId).maybeSingle(),
+
+        sucursalId
+          ? supabase
+              .from("sucursales")
+              .select("*")
+              .eq("id", sucursalId)
+              .maybeSingle()
+          : Promise.resolve({ data: null, error: null }),
+
         supabase
           .from("colaboradores")
           .select("*")
@@ -101,19 +122,30 @@ export function AppDataProvider({ children }) {
           .order("nombre", { ascending: true }),
       ]);
 
-      if (colaboradoresResult.error) throw colaboradoresResult.error;
+      if (negocioResult.error) throw negocioResult.error;
+      if (sucursalResult.error) throw sucursalResult.error;
+      if (colaboradorResult.error) throw colaboradorResult.error;
       if (clientesResult.error) throw clientesResult.error;
       if (serviciosResult.error) throw serviciosResult.error;
       if (productosResult.error) throw productosResult.error;
       if (mediosPagoResult.error) throw mediosPagoResult.error;
 
-      setColaborador(colaboradoresResult.data ?? null);
+      setNegocio(negocioResult.data ?? null);
+      setSucursal(sucursalResult.data ?? null);
+      setColaborador(colaboradorResult.data ?? null);
       setClientes(clientesResult.data ?? []);
       setServicios(serviciosResult.data ?? []);
       setProductos(productosResult.data ?? []);
       setMediosPago(mediosPagoResult.data ?? []);
     } catch (error) {
-      console.error("Error cargando datos iniciales:", error);
+      console.error("Error cargando datos iniciales:", {
+        message: error?.message,
+        details: error?.details,
+        hint: error?.hint,
+        code: error?.code,
+        fullError: error,
+      });
+
       setAppDataError(
         "No se pudieron cargar los datos iniciales del negocio."
       );
