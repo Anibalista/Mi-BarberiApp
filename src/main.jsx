@@ -1,13 +1,16 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { validateEnv } from "./config/env";
-import "./index.css";
 import App from "./App.jsx";
+import { validateEnv } from "./config/env";
+import { AuthProvider } from "./context/AuthContext.jsx";
+import "./index.css";
 
 validateEnv();
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
-    <App />
+    <AuthProvider>
+      <App />
+    </AuthProvider>
   </StrictMode>
 );
