@@ -1,4 +1,3 @@
-import { useState } from "react";
 import {
   FiArchive,
   FiBarChart2,
@@ -8,7 +7,6 @@ import {
   FiChevronUp,
   FiClipboard,
   FiDollarSign,
-  FiLogOut,
   FiPackage,
   FiPieChart,
   FiPlusCircle,
@@ -17,7 +15,10 @@ import {
   FiShoppingCart,
   FiUsers,
 } from "react-icons/fi";
-import ThemeToggle from "../components/theme/ThemeToggle";
+import { Link } from "react-router-dom";
+import { useState } from "react";
+import PageShell from "../components/layout/PageShell";
+import { useAppData } from "../context/AppDataContext";
 import { useAuth } from "../context/AuthContext";
 
 const quickActions = [
@@ -25,18 +26,21 @@ const quickActions = [
     title: "Nueva venta",
     description: "Cobrar servicio o producto al instante.",
     icon: FiShoppingCart,
+    to: "/ventas/nueva",
     variant: "primary",
   },
   {
     title: "Nuevo turno",
     description: "Agendar cliente con fecha y barbero.",
     icon: FiCalendar,
+    to: "/turnos/nuevo",
     variant: "default",
   },
   {
     title: "Registrar atención",
     description: "Carga rápida sin pasar por cola.",
     icon: FiScissors,
+    to: "/atenciones/nueva",
     variant: "default",
   },
 ];
@@ -46,48 +50,56 @@ const advancedOptions = [
     title: "Clientes",
     description: "Alta, búsqueda e historial.",
     icon: FiUsers,
+    to: "/clientes",
   },
   {
     title: "Servicios",
     description: "Precios de lista y efectivo.",
     icon: FiScissors,
+    to: "/servicios",
   },
   {
     title: "Productos",
     description: "Ventas, stock y costos.",
     icon: FiPackage,
+    to: "/productos",
   },
   {
     title: "Caja diaria",
     description: "Apertura, movimientos y cierre.",
     icon: FiArchive,
+    to: "/caja",
   },
   {
     title: "Finanzas",
     description: "Ingresos, egresos y retiros.",
     icon: FiDollarSign,
+    to: "/finanzas",
   },
   {
     title: "Comisiones",
     description: "Reglas y liquidaciones.",
     icon: FiBriefcase,
+    to: "/comisiones",
   },
   {
     title: "Reportes",
     description: "Gráficos y métricas del negocio.",
     icon: FiBarChart2,
+    to: "/reportes",
   },
   {
     title: "Configuración",
     description: "Roles, permisos y negocio.",
     icon: FiSettings,
+    to: "/configuracion",
   },
 ];
 
 export default function DashboardPage() {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
+  const { negocio, sucursal, clientes, servicios, productos } = useAppData();
   const [showAdvanced, setShowAdvanced] = useState(false);
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const userName =
     user?.user_metadata?.full_name ||
@@ -95,52 +107,16 @@ export default function DashboardPage() {
     user?.email ||
     "Usuario";
 
-  async function handleLogout() {
-    try {
-      setIsLoggingOut(true);
-      await logout();
-    } catch {
-      setIsLoggingOut(false);
-    }
-  }
-
-  function handleComingSoon(optionName) {
-    alert(`${optionName} estará disponible en la próxima etapa.`);
-  }
-
   return (
-    <main className="app-shell">
-      <header className="app-header">
-        <div className="brand">
-          <div className="brand__logo">💈</div>
-          <div>
-            <p className="brand__eyebrow">Panel principal</p>
-            <h1 className="brand__title">Mi BarberiApp</h1>
-          </div>
-        </div>
-
-        <div className="header-actions">
-          <ThemeToggle />
-
-          <button
-            type="button"
-            className="btn btn-ghost"
-            onClick={handleLogout}
-            disabled={isLoggingOut}
-          >
-            <FiLogOut />
-            {isLoggingOut ? "Saliendo..." : "Salir"}
-          </button>
-        </div>
-      </header>
-
+    <PageShell>
       <section className="dashboard-hero">
         <div>
-          <span className="badge">Sucursal principal</span>
+          <span className="badge">{sucursal?.nombre || "Sucursal principal"}</span>
           <h2>Hola, {userName}</h2>
           <p>
-            Tenés a mano las acciones principales para trabajar rápido. Las
-            opciones administrativas quedan agrupadas para no llenar la pantalla.
+            {negocio?.nombre || "Tu barbería"} ya tiene el panel base listo.
+            Usá las acciones rápidas para registrar ventas, turnos o atenciones
+            sin perder tiempo.
           </p>
         </div>
 
@@ -164,13 +140,12 @@ export default function DashboardPage() {
             const Icon = action.icon;
 
             return (
-              <button
+              <Link
                 key={action.title}
-                type="button"
+                to={action.to}
                 className={`quick-action ${
                   action.variant === "primary" ? "quick-action--primary" : ""
                 }`}
-                onClick={() => handleComingSoon(action.title)}
               >
                 <span className="quick-action__icon">
                   <Icon />
@@ -182,7 +157,7 @@ export default function DashboardPage() {
                 </span>
 
                 <FiPlusCircle className="quick-action__plus" />
-              </button>
+              </Link>
             );
           })}
         </div>
@@ -209,12 +184,7 @@ export default function DashboardPage() {
               const Icon = option.icon;
 
               return (
-                <button
-                  key={option.title}
-                  type="button"
-                  className="module-card"
-                  onClick={() => handleComingSoon(option.title)}
-                >
+                <Link key={option.title} to={option.to} className="module-card">
                   <span className="module-card__icon">
                     <Icon />
                   </span>
@@ -223,7 +193,7 @@ export default function DashboardPage() {
                     <strong>{option.title}</strong>
                     <small>{option.description}</small>
                   </span>
-                </button>
+                </Link>
               );
             })}
           </div>
@@ -245,10 +215,13 @@ export default function DashboardPage() {
 
         <article className="stat-card">
           <FiUsers />
-          <span>Clientes atendidos</span>
-          <strong>0</strong>
+          <span>Base cargada</span>
+          <strong>
+            {clientes.length} clientes · {servicios.length} servicios ·{" "}
+            {productos.length} productos
+          </strong>
         </article>
       </section>
-    </main>
+    </PageShell>
   );
 }
