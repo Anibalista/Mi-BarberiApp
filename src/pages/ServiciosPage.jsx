@@ -15,8 +15,6 @@ import { supabase } from "../lib/supabaseClient";
 import {
   capitalizeFirstLetter,
   normalizeText,
-  onlyPositiveNumber,
-  preventInvalidNumberKeys,
 } from "../utils/formGuards";
 import { formatCurrency, formatNumber } from "../utils/formatters";
 
@@ -40,7 +38,7 @@ function createEmptyCost() {
     producto_nombre: "",
     descripcion: "",
     cantidad: "1",
-    unidad_medida: "unidad",
+    unidad_medida: "",
     costo_unitario: "",
     costo_total: "",
     activo: true,
@@ -52,21 +50,65 @@ function normalizeServicePayload(form, negocioId) {
     negocio_id: negocioId,
     nombre: capitalizeFirstLetter(form.nombre).trim(),
     descripcion: form.descripcion.trim() || null,
-    precio_lista: Number(form.precio_lista || 0),
-    precio_efectivo: Number(form.precio_efectivo || 0),
+    precio_lista: parseDecimal(form.precio_lista),
+    precio_efectivo: parseDecimal(form.precio_efectivo),
     duracion_minutos: form.duracion_minutos
-      ? Number(form.duracion_minutos)
+      ? parseDecimal(form.duracion_minutos)
       : null,
     activo: Boolean(form.activo),
   };
 }
 
+
+function normalizeDecimalInput(value) {
+  const cleanValue = String(value || "").replace(/\./g, ",");
+
+  if (cleanValue === "") return "";
+
+  const onlyValidChars = cleanValue.replace(/[^\d,]/g, "");
+  const [integerPart, ...decimalParts] = onlyValidChars.split(",");
+
+  if (decimalParts.length === 0) {
+    return integerPart;
+  }
+
+  return `${integerPart},${decimalParts.join("")}`;
+}
+
+function parseDecimal(value) {
+  if (value === "" || value === null || value === undefined) return 0;
+
+  const normalizedValue = String(value).replace(",", ".");
+  const numberValue = Number(normalizedValue);
+
+  return Number.isFinite(numberValue) && numberValue >= 0 ? numberValue : 0;
+}
+
+function numberToInputValue(value, decimals = null) {
+  if (value === null || value === undefined || value === "") return "";
+
+  const numberValue = Number(value);
+
+  if (!Number.isFinite(numberValue)) return "";
+
+  const formattedValue =
+    decimals === null ? String(numberValue) : String(roundTo(numberValue, decimals));
+
+  return formattedValue.replace(".", ",");
+}
+
+function roundTo(value, decimals = 2) {
+  const factor = 10 ** decimals;
+
+  return Math.round((Number(value) + Number.EPSILON) * factor) / factor;
+}
+
 function calculateCostTotal(cantidad, costoUnitario) {
-  return Number(cantidad || 0) * Number(costoUnitario || 0);
+  return parseDecimal(cantidad) * parseDecimal(costoUnitario);
 }
 
 export default function ServiciosPage() {
-  const { negocio, productos, refreshAppData } = useAppData();
+  const { negocio, productos, unidadesMedida, refreshAppData } = useAppData();
 
   const [servicios, setServicios] = useState([]);
   const [servicioCostos, setServicioCostos] = useState([]);
@@ -210,7 +252,7 @@ export default function ServiciosPage() {
   function updateNumericFormField(field, value) {
     setForm((current) => ({
       ...current,
-      [field]: onlyPositiveNumber(value),
+      [field]: normalizeDecimalInput(value),
     }));
   }
 
@@ -228,20 +270,27 @@ export default function ServiciosPage() {
           updatedCost.descripcion = capitalizeFirstLetter(value);
         }
 
+        if (
+          field === "cantidad" ||
+          field === "costo_unitario" ||
+          field === "costo_total"
+        ) {
+          updatedCost[field] = normalizeDecimalInput(value);
+        }
+
         if (field === "cantidad" || field === "costo_unitario") {
-          updatedCost[field] = onlyPositiveNumber(value);
-          updatedCost.costo_total = String(
+          const costoTotal = roundTo(
             calculateCostTotal(
               field === "cantidad" ? updatedCost[field] : updatedCost.cantidad,
               field === "costo_unitario"
                 ? updatedCost[field]
                 : updatedCost.costo_unitario
-            )
+            ),
+            2
           );
-        }
 
-        if (field === "costo_total") {
-          updatedCost.costo_total = onlyPositiveNumber(value);
+          updatedCost.costo_total =
+            costoTotal > 0 ? numberToInputValue(costoTotal, 2) : "";
         }
 
         if (field === "origen" && value === "manual") {
@@ -272,16 +321,30 @@ export default function ServiciosPage() {
         }
 
         const cantidad =
-          selectedProduct.dosificacion_default > 0
-            ? String(selectedProduct.dosificacion_default)
-            : cost.cantidad;
+          Number(selectedProduct.dosificacion_default || 0) > 0
+            ? numberToInputValue(selectedProduct.dosificacion_default)
+            : cost.cantidad || "1";
 
-        const unidad =
+        const unidadMedida =
           selectedProduct.unidad_contenido ||
           selectedProduct.unidad_medida ||
           "unidad";
 
-        const costoUnitario = String(selectedProduct.costo_unitario || 0);
+        const contenidoPorUnidad = Number(
+          selectedProduct.contenido_por_unidad || 0
+        );
+
+        const costoProductoEntero = Number(selectedProduct.costo_unitario || 0);
+
+        const costoPorUnidadDeContenido =
+          contenidoPorUnidad > 0
+            ? costoProductoEntero / contenidoPorUnidad
+            : costoProductoEntero;
+
+        const costoTotal = roundTo(
+          parseDecimal(cantidad) * costoPorUnidadDeContenido,
+          2
+        );
 
         return {
           ...cost,
@@ -290,9 +353,9 @@ export default function ServiciosPage() {
           producto_nombre: selectedProduct.nombre,
           descripcion: selectedProduct.nombre,
           cantidad,
-          unidad_medida: unidad,
-          costo_unitario: costoUnitario,
-          costo_total: String(calculateCostTotal(cantidad, costoUnitario)),
+          unidad_medida: unidadMedida,
+          costo_unitario: numberToInputValue(costoPorUnidadDeContenido, 6),
+          costo_total: numberToInputValue(costoTotal, 2),
         };
       })
     );
@@ -332,10 +395,10 @@ export default function ServiciosPage() {
           producto_id: cost.producto_id,
           producto_nombre: relatedProduct?.nombre || "",
           descripcion: cost.descripcion || "",
-          cantidad: String(cost.cantidad ?? ""),
+          cantidad: numberToInputValue(cost.cantidad),
           unidad_medida: cost.unidad_medida || "unidad",
-          costo_unitario: String(cost.costo_unitario ?? ""),
-          costo_total: String(cost.costo_total ?? ""),
+          costo_unitario: numberToInputValue(cost.costo_unitario),
+          costo_total: numberToInputValue(cost.costo_total),
           activo: cost.activo,
         };
       });
@@ -344,9 +407,9 @@ export default function ServiciosPage() {
       id: servicio.id,
       nombre: servicio.nombre || "",
       descripcion: servicio.descripcion || "",
-      precio_lista: String(servicio.precio_lista ?? ""),
-      precio_efectivo: String(servicio.precio_efectivo ?? ""),
-      duracion_minutos: String(servicio.duracion_minutos ?? ""),
+      precio_lista: numberToInputValue(servicio.precio_lista),
+      precio_efectivo: numberToInputValue(servicio.precio_efectivo),
+      duracion_minutos: numberToInputValue(servicio.duracion_minutos),
       activo: servicio.activo,
     });
 
@@ -428,7 +491,7 @@ export default function ServiciosPage() {
         (cost) =>
           cost.descripcion.trim() ||
           cost.producto_id ||
-          Number(cost.costo_total || 0) > 0
+          parseDecimal(cost.costo_total) > 0
       );
 
       if (isEditing) {
@@ -452,10 +515,10 @@ export default function ServiciosPage() {
             capitalizeFirstLetter(cost.descripcion).trim() ||
             cost.producto_nombre ||
             "Costo del servicio",
-          cantidad: Number(cost.cantidad || 0),
+          cantidad: parseDecimal(cost.cantidad),
           unidad_medida: cost.unidad_medida || "unidad",
-          costo_unitario: Number(cost.costo_unitario || 0),
-          costo_total: Number(cost.costo_total || 0),
+          costo_unitario: parseDecimal(cost.costo_unitario),
+          costo_total: parseDecimal(cost.costo_total),
           activo: Boolean(cost.activo),
         }));
 
@@ -509,6 +572,19 @@ export default function ServiciosPage() {
     }
   }
 
+  const unidadesSugeridas = unidadesMedida.length
+  ? unidadesMedida
+  : [
+      { codigo: "unidad", nombre: "Unidades" },
+      { codigo: "gr", nombre: "Gramos" },
+      { codigo: "kg", nombre: "Kilogramos" },
+      { codigo: "ml", nombre: "Mililitros" },
+      { codigo: "lt", nombre: "Litros" },
+      { codigo: "cc", nombre: "Centímetros cúbicos" },
+      { codigo: "mm", nombre: "Milímetros" },
+      { codigo: "cm", nombre: "Centímetros" },
+    ];
+
   return (
     <PageShell>
       <section className="page-heading">
@@ -560,11 +636,9 @@ export default function ServiciosPage() {
             <label className="form-field">
               <span>Precio de lista</span>
               <input
-                type="number"
+                type="text"
                 inputMode="decimal"
-                min="0"
                 value={form.precio_lista}
-                onKeyDown={preventInvalidNumberKeys}
                 onChange={(event) =>
                   updateNumericFormField("precio_lista", event.target.value)
                 }
@@ -576,11 +650,9 @@ export default function ServiciosPage() {
             <label className="form-field">
               <span>Precio efectivo</span>
               <input
-                type="number"
+                type="text"
                 inputMode="decimal"
-                min="0"
                 value={form.precio_efectivo}
-                onKeyDown={preventInvalidNumberKeys}
                 onChange={(event) =>
                   updateNumericFormField("precio_efectivo", event.target.value)
                 }
@@ -592,11 +664,9 @@ export default function ServiciosPage() {
             <label className="form-field">
               <span>Duración estimada en minutos</span>
               <input
-                type="number"
+                type="text"
                 inputMode="numeric"
-                min="0"
                 value={form.duracion_minutos}
-                onKeyDown={preventInvalidNumberKeys}
                 onChange={(event) =>
                   updateNumericFormField("duracion_minutos", event.target.value)
                 }
@@ -728,12 +798,10 @@ export default function ServiciosPage() {
                     <label className="form-field">
                       <span>Cantidad</span>
                       <input
-                        type="number"
+type="text"
                         inputMode="decimal"
-                        min="0"
                         value={cost.cantidad}
-                        onKeyDown={preventInvalidNumberKeys}
-                        onChange={(event) =>
+                                onChange={(event) =>
                           updateCost(cost.tempId, "cantidad", event.target.value)
                         }
                       />
@@ -759,12 +827,10 @@ export default function ServiciosPage() {
                     <label className="form-field">
                       <span>Costo unitario</span>
                       <input
-                        type="number"
+type="text"
                         inputMode="decimal"
-                        min="0"
                         value={cost.costo_unitario}
-                        onKeyDown={preventInvalidNumberKeys}
-                        onChange={(event) =>
+                                onChange={(event) =>
                           updateCost(
                             cost.tempId,
                             "costo_unitario",
@@ -777,12 +843,10 @@ export default function ServiciosPage() {
                     <label className="form-field">
                       <span>Costo total</span>
                       <input
-                        type="number"
+type="text"
                         inputMode="decimal"
-                        min="0"
                         value={cost.costo_total}
-                        onKeyDown={preventInvalidNumberKeys}
-                        onChange={(event) =>
+                                onChange={(event) =>
                           updateCost(
                             cost.tempId,
                             "costo_total",
@@ -806,12 +870,13 @@ export default function ServiciosPage() {
             </div>
 
             <datalist id="unidades-medida">
-              <option value="unidad" />
-              <option value="ml" />
-              <option value="gr" />
-              <option value="cm3" />
-              <option value="uso" />
-              <option value="minuto" />
+              {unidadesSugeridas.map((unidad) => (
+                <option
+                  key={unidad.codigo}
+                  value={unidad.codigo}
+                  label={unidad.nombre}
+                />
+              ))}
             </datalist>
           </div>
 

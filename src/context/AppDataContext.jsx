@@ -16,6 +16,7 @@ export function AppDataProvider({ children }) {
   const [servicios, setServicios] = useState([]);
   const [productos, setProductos] = useState([]);
   const [mediosPago, setMediosPago] = useState([]);
+  const [unidadesMedida, setUnidadesMedida] = useState([]);
 
   const [isAppDataLoading, setIsAppDataLoading] = useState(true);
   const [appDataError, setAppDataError] = useState("");
@@ -30,6 +31,7 @@ export function AppDataProvider({ children }) {
       setServicios([]);
       setProductos([]);
       setMediosPago([]);
+      setUnidadesMedida([]);
       setIsAppDataLoading(false);
       return;
     }
@@ -75,6 +77,7 @@ export function AppDataProvider({ children }) {
         serviciosResult,
         productosResult,
         mediosPagoResult,
+        unidadesMedidaResult,
       ] = await Promise.all([
         supabase.from("negocios").select("*").eq("id", negocioId).maybeSingle(),
 
@@ -120,6 +123,12 @@ export function AppDataProvider({ children }) {
           .eq("negocio_id", negocioId)
           .eq("activo", true)
           .order("nombre", { ascending: true }),
+
+        supabase
+          .from("unidades_medida")
+          .select("*")
+          .eq("activa", true)
+          .order("orden", { ascending: true }),
       ]);
 
       if (negocioResult.error) throw negocioResult.error;
@@ -129,6 +138,7 @@ export function AppDataProvider({ children }) {
       if (serviciosResult.error) throw serviciosResult.error;
       if (productosResult.error) throw productosResult.error;
       if (mediosPagoResult.error) throw mediosPagoResult.error;
+      if (unidadesMedidaResult.error) throw unidadesMedidaResult.error;
 
       setNegocio(negocioResult.data ?? null);
       setSucursal(sucursalResult.data ?? null);
@@ -137,6 +147,7 @@ export function AppDataProvider({ children }) {
       setServicios(serviciosResult.data ?? []);
       setProductos(productosResult.data ?? []);
       setMediosPago(mediosPagoResult.data ?? []);
+      setUnidadesMedida(unidadesMedidaResult.data ?? []);
     } catch (error) {
       console.error("Error cargando datos iniciales:", {
         message: error?.message,
@@ -169,6 +180,7 @@ export function AppDataProvider({ children }) {
       servicios,
       productos,
       mediosPago,
+      unidadesMedida,
       isAppDataLoading,
       appDataError,
       refreshAppData: loadAppData,
@@ -182,6 +194,7 @@ export function AppDataProvider({ children }) {
       servicios,
       productos,
       mediosPago,
+      unidadesMedida,
       isAppDataLoading,
       appDataError,
     ]

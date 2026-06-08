@@ -1191,3 +1191,49 @@ a {
     flex-direction: column;
   }
 }
+
+.product-form-card {
+  align-items: stretch;
+}
+
+.product-form {
+  display: grid;
+  gap: 1rem;
+}
+
+.product-options-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.toolbar-select {
+  min-height: 2.8rem;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 0.55rem 0.85rem;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-weight: 800;
+}
+
+.usage-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.status-pill.is-warning {
+  background: rgba(217, 119, 6, 0.13);
+  color: var(--color-warning);
+}
+
+@media (max-width: 860px) {
+  .product-options-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .toolbar-select {
+    width: 100%;
+  }
+}
