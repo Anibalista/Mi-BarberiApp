@@ -1237,3 +1237,68 @@ a {
     width: 100%;
   }
 }
+
+.client-form-card {
+  align-items: stretch;
+}
+
+.client-form {
+  display: grid;
+  gap: 1rem;
+}
+
+.phone-box,
+.birth-box {
+  display: grid;
+  gap: 0.85rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: 1rem;
+  background: var(--color-surface-soft);
+}
+
+.phone-box strong,
+.birth-box strong {
+  display: block;
+}
+
+.phone-box small,
+.birth-box small {
+  display: block;
+  margin-top: 0.2rem;
+  color: var(--color-text-muted);
+}
+
+.phone-grid {
+  display: grid;
+  grid-template-columns: 0.8fr 0.8fr 1.4fr;
+  gap: 0.85rem;
+}
+
+.birth-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.phone-preview {
+  margin: 0;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 0.75rem 0.9rem;
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-weight: 800;
+}
+
+.phone-preview strong {
+  display: inline;
+  color: var(--color-text);
+}
+
+@media (max-width: 760px) {
+  .phone-grid,
+  .birth-grid {
+    grid-template-columns: 1fr;
+  }
+}
