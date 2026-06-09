@@ -62,8 +62,19 @@ function normalizeDecimalInput(value) {
   return `${integerPart},${decimalParts.join("")}`;
 }
 
-function normalizeIntegerInput(value) {
-  return String(value || "").replace(/\D/g, "");
+function normalizeIntegerInput(value, allowNegative = false) {
+  const cleanValue = String(value || "").replace(/[^\d-]/g, "");
+
+  if (!allowNegative) {
+    return cleanValue.replace(/-/g, "");
+  }
+
+  const isNegative = cleanValue.startsWith("-");
+  const digits = cleanValue.replace(/-/g, "");
+
+  if (!digits && isNegative) return "-";
+
+  return `${isNegative ? "-" : ""}${digits}`;
 }
 
 function parseDecimal(value) {
@@ -75,13 +86,20 @@ function parseDecimal(value) {
   return Number.isFinite(numberValue) && numberValue >= 0 ? numberValue : 0;
 }
 
-function parseInteger(value) {
-  if (value === "" || value === null || value === undefined) return 0;
+function parseInteger(value, allowNegative = false) {
+  if (value === "" || value === null || value === undefined || value === "-") {
+    return 0;
+  }
 
-  const normalizedValue = String(value).replace(/\D/g, "");
+  const normalizedValue = allowNegative
+    ? String(value).replace(/(?!^-)[^\d]/g, "")
+    : String(value).replace(/\D/g, "");
+
   const numberValue = Number(normalizedValue);
 
-  return Number.isInteger(numberValue) && numberValue >= 0 ? numberValue : 0;
+  if (!Number.isInteger(numberValue)) return 0;
+
+  return allowNegative ? numberValue : Math.max(0, numberValue);
 }
 
 function numberToInputValue(value) {
@@ -100,7 +118,7 @@ function normalizeProductPayload(form, negocioId) {
     precio_lista: parseDecimal(form.precio_lista),
     precio_efectivo: parseDecimal(form.precio_efectivo),
     costo_unitario: parseDecimal(form.costo_unitario),
-    stock_actual: parseInteger(form.stock_actual),
+    stock_actual: parseInteger(form.stock_actual, true),
     stock_minimo: parseInteger(form.stock_minimo),
     disponible_venta: Boolean(form.disponible_venta),
     disponible_insumo: Boolean(form.disponible_insumo),
@@ -333,7 +351,7 @@ export default function ProductosPage() {
     setForm((current) => ({
       ...current,
       [field]: integerFields.includes(field)
-        ? normalizeIntegerInput(value)
+        ? normalizeIntegerInput(value, field === "stock_actual")
         : normalizeDecimalInput(value),
     }));
   }

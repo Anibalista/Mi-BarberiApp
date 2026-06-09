@@ -1337,3 +1337,38 @@ a {
     width: 100%;
   }
 }
+
+.product-sale-picker {
+  padding: 1rem;
+  background: var(--color-surface-soft);
+}
+
+.stock-warning-box {
+  display: grid;
+  gap: 0.55rem;
+  border: 1px solid rgba(220, 38, 38, 0.35);
+  border-radius: var(--radius-lg);
+  padding: 0.95rem 1rem;
+  background: rgba(220, 38, 38, 0.1);
+  color: var(--color-danger);
+}
+
+.stock-warning-box strong {
+  font-size: 0.98rem;
+}
+
+.stock-warning-box ul {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+.stock-warning-box li {
+  line-height: 1.45;
+}
+
+.stock-warning-box small {
+  color: var(--color-danger);
+  font-weight: 800;
+}

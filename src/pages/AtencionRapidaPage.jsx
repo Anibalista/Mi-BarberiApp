@@ -150,10 +150,8 @@ function calculateProductStockAfterInsumoConsumption(producto, cantidadConsumida
   const totalDisponibleEnContenido =
     stockActual * contenidoPorUnidad + cantidadSuelta;
 
-  const nuevoTotalEnContenido = Math.max(
-    0,
-    totalDisponibleEnContenido - Number(cantidadConsumida || 0)
-  );
+  const nuevoTotalEnContenido =
+    totalDisponibleEnContenido - Number(cantidadConsumida || 0);
 
   const nuevoStockEntero = Math.floor(
     nuevoTotalEnContenido / contenidoPorUnidad
@@ -563,14 +561,18 @@ export default function AtencionRapidaPage() {
     return consumptions;
   }
 
-  function validateInsumoStock(selectedCosts) {
+  function getInsumoStockWarnings(selectedCosts) {
+    const warnings = [];
     const consumptions = getInsumoConsumptionsByProduct(selectedCosts);
 
     for (const [productoId, cantidadConsumida] of consumptions.entries()) {
       const producto = productos.find((item) => item.id === productoId);
 
       if (!producto) {
-        return "Uno de los insumos del servicio ya no existe como producto.";
+        warnings.push(
+          "Uno de los insumos del servicio ya no existe como producto."
+        );
+        continue;
       }
 
       const contenidoPorUnidad = Number(producto.contenido_por_unidad || 1) || 1;
@@ -579,14 +581,36 @@ export default function AtencionRapidaPage() {
       const totalDisponible = stockActual * contenidoPorUnidad + cantidadSuelta;
 
       if (cantidadConsumida > totalDisponible) {
-        return `No hay insumo suficiente de "${producto.nombre}". Disponible: ${roundTo(
-          totalDisponible,
-          3
-        )} ${producto.unidad_contenido || producto.unidad_medida || "unidad"}. Necesario: ${cantidadConsumida}.`;
+        warnings.push(
+          `El servicio consumirá más insumo de "${producto.nombre}" del disponible. Disponible: ${roundTo(
+            totalDisponible,
+            3
+          )} ${
+            producto.unidad_contenido || producto.unidad_medida || "unidad"
+          }. Necesario: ${cantidadConsumida}. Si confirmás, el stock quedará negativo para corregirlo luego en inventario.`
+        );
       }
     }
 
-    return "";
+    return warnings;
+  }
+
+  function getProductSaleStockWarnings() {
+    return productosSeleccionados
+      .filter((item) => numberFromInput(item.cantidad) > Number(item.stock_actual || 0))
+      .map(
+        (item) =>
+          `La venta de "${item.nombre}" supera el stock actual. Stock actual: ${item.stock_actual}. Cantidad a vender: ${numberFromInput(
+            item.cantidad
+          )}. Si confirmás, el stock quedará negativo para corregirlo luego en inventario.`
+      );
+  }
+
+  function getStockWarnings() {
+    return [
+      ...getProductSaleStockWarnings(),
+      ...getInsumoStockWarnings(getSelectedServiceCosts()),
+    ];
   }
 
   function validateBeforeSave(phoneResult) {
@@ -638,30 +662,13 @@ export default function AtencionRapidaPage() {
       return `Revisá cantidad y precio cobrado del producto "${invalidProducto.nombre}". Ambos deben ser mayores a cero.`;
     }
 
-    const productWithoutStock = productosSeleccionados.find(
-      (item) => numberFromInput(item.cantidad) > Number(item.stock_actual || 0)
-    );
-
-    if (productWithoutStock) {
-      return `No hay stock suficiente de "${productWithoutStock.nombre}". Stock actual: ${productWithoutStock.stock_actual}.`;
-    }
-
-    const selectedCosts = getSelectedServiceCosts();
-    const insumoStockError = validateInsumoStock(selectedCosts);
-
-    if (insumoStockError) {
-      return insumoStockError;
-    }
-
     return "";
   }
 
   async function discountProductStock() {
     for (const item of productosSeleccionados) {
-      const newStock = Math.max(
-        0,
-        Number(item.stock_actual || 0) - numberFromInput(item.cantidad)
-      );
+      const newStock =
+        Number(item.stock_actual || 0) - numberFromInput(item.cantidad);
 
       const { error } = await supabase
         .from("productos")
@@ -732,10 +739,15 @@ export default function AtencionRapidaPage() {
       return;
     }
 
+    const stockWarnings = getStockWarnings();
+    const stockWarningText = stockWarnings.length
+      ? `\n\n⚠️ ADVERTENCIA DE STOCK:\n- ${stockWarnings.join("\n- ")}`
+      : "";
+
     const shouldSave = window.confirm(
       `Vas a registrar una atención por ${formatCurrency(
         total
-      )}. Esta operación no se podrá editar directamente después.\n\n¿Confirmás el registro?`
+      )}. Esta operación no se podrá editar directamente después.${stockWarningText}\n\n¿Confirmás el registro?`
     );
 
     if (!shouldSave) {
@@ -833,12 +845,19 @@ export default function AtencionRapidaPage() {
       resetForm();
       await refreshAppData();
     } catch (error) {
-      console.error("Error registrando atención:", error);
-      setFeedback("No se pudo registrar la atención.");
+      console.error("Error registrando atención:", {
+        message: error?.message,
+        details: error?.details,
+        hint: error?.hint,
+        code: error?.code,
+        fullError: error,
+      });
     } finally {
       setIsSaving(false);
     }
   }
+
+  const currentStockWarnings = getStockWarnings();
 
   return (
     <PageShell>
@@ -1145,6 +1164,21 @@ export default function AtencionRapidaPage() {
             placeholder="Opcional"
           />
         </label>
+
+        {currentStockWarnings.length > 0 && (
+          <div className="stock-warning-box">
+            <strong>Advertencia de stock</strong>
+            <ul>
+              {currentStockWarnings.map((warning) => (
+                <li key={warning}>{warning}</li>
+              ))}
+            </ul>
+            <small>
+              Podés guardar igual si el stock cargado estaba desactualizado. El
+              stock quedará negativo para revisar inventario luego.
+            </small>
+          </div>
+        )}
 
         <div className="total-bar">
           <span>Total atención</span>
