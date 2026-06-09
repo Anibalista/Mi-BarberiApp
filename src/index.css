@@ -1302,3 +1302,38 @@ a {
     grid-template-columns: 1fr;
   }
 }
+
+.inline-section-title {
+  margin: 0;
+  color: var(--color-text);
+  font-size: 1rem;
+}
+
+.mini-field {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 6rem;
+}
+
+.mini-field span {
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  font-weight: 900;
+}
+
+.mini-field input {
+  width: 5rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 0.55rem 0.65rem;
+  background: var(--color-surface);
+  color: var(--color-text);
+  outline: none;
+}
+
+@media (max-width: 640px) {
+  .mini-field,
+  .mini-field input {
+    width: 100%;
+  }
+}
