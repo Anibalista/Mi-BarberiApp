@@ -1372,3 +1372,248 @@ a {
   color: var(--color-danger);
   font-weight: 800;
 }
+
+.agenda-form-card,
+.agenda-card {
+  align-items: stretch;
+}
+
+.agenda-form {
+  display: grid;
+  gap: 1rem;
+}
+
+.agenda-service-picker {
+  min-width: min(22rem, 100%);
+}
+
+.turno-services-selected {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.calendar-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin: 1rem 0;
+  text-transform: capitalize;
+}
+
+.calendar-header strong {
+  min-width: 16rem;
+  text-align: center;
+  font-size: 1.35rem;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  background: var(--color-surface);
+}
+
+.calendar-weekday {
+  border-bottom: 1px solid var(--color-border);
+  padding: 0.75rem;
+  background: var(--color-surface-soft);
+  color: var(--color-text-muted);
+  text-align: center;
+  font-size: 0.8rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.calendar-day {
+  min-height: 6.5rem;
+  border: 0;
+  border-right: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+  padding: 0.75rem;
+  background: transparent;
+  color: var(--color-text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.calendar-day:nth-child(7n + 7) {
+  border-right: 0;
+}
+
+.calendar-day strong {
+  display: block;
+  font-size: 1rem;
+}
+
+.calendar-day span {
+  display: inline-flex;
+  margin-top: 0.55rem;
+  border-radius: 999px;
+  padding: 0.2rem 0.55rem;
+  background: var(--color-primary-soft);
+  color: var(--color-primary-dark);
+  font-size: 0.75rem;
+  font-weight: 900;
+}
+
+.calendar-day.is-muted {
+  color: var(--color-text-muted);
+  opacity: 0.45;
+}
+
+.calendar-day.is-selected {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+  background: var(--color-primary-soft);
+}
+
+.calendar-day.has-turnos {
+  background-image: linear-gradient(
+    135deg,
+    rgba(245, 158, 11, 0.08),
+    transparent
+  );
+}
+
+.day-turnos-panel {
+  display: grid;
+  gap: 0.85rem;
+  margin-top: 1rem;
+}
+
+.turnos-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.turno-card {
+  display: grid;
+  grid-template-columns: 6rem 1fr auto auto;
+  gap: 0.85rem;
+  align-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 0.85rem;
+  background: var(--color-surface-soft);
+}
+
+.turno-card__time strong,
+.turno-card__main strong {
+  display: block;
+}
+
+.turno-card__time small,
+.turno-card__main small {
+  display: block;
+  margin-top: 0.15rem;
+  color: var(--color-text-muted);
+}
+
+.turno-card__main p {
+  margin: 0.45rem 0 0;
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+.turno-services {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+}
+
+.turno-services span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  border-radius: 999px;
+  padding: 0.25rem 0.55rem;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.turno-status {
+  display: inline-flex;
+  border-radius: 999px;
+  padding: 0.35rem 0.65rem;
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.turno-status--pendiente {
+  background: rgba(245, 158, 11, 0.14);
+  color: var(--color-warning);
+}
+
+.turno-status--confirmado {
+  background: rgba(37, 99, 235, 0.14);
+  color: var(--color-info);
+}
+
+.turno-status--cancelado,
+.turno-status--ausente {
+  background: rgba(220, 38, 38, 0.13);
+  color: var(--color-danger);
+}
+
+.turno-status--atendido {
+  background: rgba(21, 128, 61, 0.13);
+  color: var(--color-success);
+}
+
+.turno-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  justify-content: flex-end;
+}
+
+.historical-filters {
+  margin-bottom: 1rem;
+  justify-content: flex-start;
+}
+
+@media (max-width: 900px) {
+  .calendar-day {
+    min-height: 5rem;
+    padding: 0.55rem;
+  }
+
+  .calendar-day span {
+    font-size: 0.68rem;
+  }
+
+  .turno-card {
+    grid-template-columns: 1fr;
+  }
+
+  .turno-card__actions {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 640px) {
+  .calendar-grid {
+    font-size: 0.8rem;
+  }
+
+  .calendar-day {
+    min-height: 4.2rem;
+  }
+
+  .calendar-day span {
+    display: block;
+    width: fit-content;
+  }
+
+  .calendar-header strong {
+    min-width: auto;
+    font-size: 1rem;
+  }
+}
