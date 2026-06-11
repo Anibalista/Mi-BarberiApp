@@ -23,10 +23,10 @@ import { useAuth } from "../context/AuthContext";
 
 const quickActions = [
   {
-    title: "Nueva venta",
-    description: "Cobrar servicio o producto al instante.",
-    icon: FiShoppingCart,
-    to: "/ventas/nueva",
+    title: "Registrar atención",
+    description: "Carga rápida sin pasar por cola.",
+    icon: FiScissors,
+    to: "/atenciones/nueva",
     variant: "primary",
   },
   {
@@ -37,10 +37,10 @@ const quickActions = [
     variant: "default",
   },
   {
-    title: "Registrar atención",
-    description: "Carga rápida sin pasar por cola.",
-    icon: FiScissors,
-    to: "/atenciones/nueva",
+    title: "Nueva venta",
+    description: "Cobrar producto al instante.",
+    icon: FiShoppingCart,
+    to: "/ventas/nueva",
     variant: "default",
   },
 ];
@@ -117,7 +117,7 @@ export default function DashboardPage() {
           <h2>Hola, {userName}</h2>
           <p>
             {negocio?.nombre || "Tu barbería"} ya tiene el panel base listo.
-            Usá las acciones rápidas para registrar ventas, turnos o atenciones
+            Usá las acciones rápidas para registrar atenciones, turnos o ventas
             sin perder tiempo.
           </p>
         </div>

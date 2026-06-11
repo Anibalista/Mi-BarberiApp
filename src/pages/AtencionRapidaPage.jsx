@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { FiPhone, FiSave, FiScissors, FiTrash2 } from "react-icons/fi";
+import { FiPhone, FiSave, FiScissors, FiTrash2, FiSearch, FiUserPlus } from "react-icons/fi";
 import PageShell from "../components/layout/PageShell";
 import { useAppData } from "../context/AppDataContext";
 import { supabase } from "../lib/supabaseClient";
@@ -61,6 +61,15 @@ function capitalizeWordsInput(value) {
   return String(value || "")
     .toLowerCase()
     .replace(/(^|\s)\S/g, (letter) => letter.toUpperCase());
+}
+
+
+function getClientFullName(cliente) {
+  return `${cliente?.nombre || ""} ${cliente?.apellido || ""}`.trim() || "Cliente sin nombre";
+}
+
+function getClientPhoneLabel(cliente) {
+  return cliente?.telefono || cliente?.whatsapp || "Sin teléfono";
 }
 
 function buildPhone({ paisTelefono, areaTelefono, numeroTelefono }) {
@@ -196,8 +205,12 @@ export default function AtencionRapidaPage() {
     [clientes]
   );
 
+
   const [servicioCostos, setServicioCostos] = useState([]);
 
+  const [clienteMode, setClienteMode] = useState("existente");
+  const [selectedClienteId, setSelectedClienteId] = useState("");
+  const [clienteSearch, setClienteSearch] = useState("");
   const [clienteNombre, setClienteNombre] = useState("");
   const [showClientPhone, setShowClientPhone] = useState(false);
   const [phoneForm, setPhoneForm] = useState(emptyPhoneForm);
@@ -213,6 +226,28 @@ export default function AtencionRapidaPage() {
   const [feedback, setFeedback] = useState("");
 
   const phonePreview = useMemo(() => buildPhone(phoneForm), [phoneForm]);
+
+  const selectedCliente = useMemo(
+    () => clientesOrdenados.find((cliente) => cliente.id === selectedClienteId),
+    [clientesOrdenados, selectedClienteId]
+  );
+
+  const clientesFiltrados = useMemo(() => {
+    const normalizedSearch = normalizeText(clienteSearch);
+
+    if (!normalizedSearch) {
+      return clientesOrdenados.slice(0, 8);
+    }
+
+    return clientesOrdenados
+      .filter((cliente) =>
+        normalizeText(
+          `${getClientFullName(cliente)} ${getClientPhoneLabel(cliente)}`
+        ).includes(normalizedSearch)
+      )
+      .slice(0, 12);
+  }, [clientesOrdenados, clienteSearch]);
+
 
   const totalServicios = useMemo(
     () =>
@@ -257,6 +292,9 @@ export default function AtencionRapidaPage() {
   }, [negocio?.id]);
 
   function resetForm() {
+    setClienteMode("existente");
+    setSelectedClienteId("");
+    setClienteSearch("");
     setClienteNombre("");
     setShowClientPhone(false);
     setPhoneForm(emptyPhoneForm);
@@ -464,25 +502,16 @@ export default function AtencionRapidaPage() {
     );
   }
 
-  function findExistingClient(nombre) {
-    const normalizedName = normalizeText(nombre);
-
-    return clientesOrdenados.find((cliente) => {
-      const fullName = `${cliente.nombre || ""} ${cliente.apellido || ""}`.trim();
-
-      return (
-        normalizeText(cliente.nombre) === normalizedName ||
-        normalizeText(fullName) === normalizedName
-      );
-    });
-  }
-
   async function getOrCreateClient(phoneResult) {
-    const cleanName = String(clienteNombre || "").trim().replace(/\s+/g, " ");
-    const normalizedName = capitalizeWordsInput(cleanName);
-    const existingClient = findExistingClient(normalizedName);
+    if (clienteMode === "existente") {
+      const existingClient = clientesOrdenados.find(
+        (cliente) => cliente.id === selectedClienteId
+      );
 
-    if (existingClient) {
+      if (!existingClient) {
+        throw new Error("Cliente seleccionado no encontrado.");
+      }
+
       const existingPhone = existingClient.telefono || existingClient.whatsapp;
 
       if (phoneResult.value && !existingPhone) {
@@ -504,6 +533,9 @@ export default function AtencionRapidaPage() {
 
       return existingClient;
     }
+
+    const cleanName = String(clienteNombre || "").trim().replace(/\s+/g, " ");
+    const normalizedName = capitalizeWordsInput(cleanName);
 
     const { data, error } = await supabase
       .from("clientes")
@@ -622,8 +654,12 @@ export default function AtencionRapidaPage() {
       return "No se encontró la sucursal actual.";
     }
 
-    if (!clienteNombre.trim()) {
-      return "Ingresá el nombre del cliente.";
+    if (clienteMode === "existente" && !selectedClienteId) {
+      return "Seleccioná un cliente registrado o usá Nuevo cliente.";
+    }
+
+    if (clienteMode === "nuevo" && !clienteNombre.trim()) {
+      return "Ingresá el nombre del cliente nuevo.";
     }
 
     if (phoneResult.error) {
@@ -872,31 +908,103 @@ export default function AtencionRapidaPage() {
 
       <form className="work-card" onSubmit={handleSubmit}>
         <div className="form-grid">
-          <label className="form-field">
-            <span>Cliente</span>
-            <input
-              list="clientes-atencion"
-              type="text"
-              value={clienteNombre}
-              onChange={(event) =>
-                setClienteNombre(capitalizeWordsInput(event.target.value))
-              }
-              placeholder="Ej: Cliente de paso"
-              required
-            />
+          <div className="client-picker-compact">
+            <div className="client-picker-compact__header">
+              <div>
+                <strong>Cliente</strong>
+                <small>
+                  {clienteMode === "existente"
+                    ? "Buscá por nombre o teléfono y seleccioná el cliente correcto."
+                    : "Cargá un cliente nuevo sin vincularlo a uno existente."}
+                </small>
+              </div>
 
-            <datalist id="clientes-atencion">
-              {clientesOrdenados.map((cliente) => (
-                <option
-                  key={cliente.id}
-                  value={`${cliente.nombre || ""} ${
-                    cliente.apellido || ""
-                  }`.trim()}
+              <button
+                type="button"
+                className="client-mode-button"
+                title={
+                  clienteMode === "existente"
+                    ? "Registrar cliente nuevo"
+                    : "Buscar cliente existente"
+                }
+                aria-label={
+                  clienteMode === "existente"
+                    ? "Registrar cliente nuevo"
+                    : "Buscar cliente existente"
+                }
+                onClick={() => {
+                  const nextMode = clienteMode === "existente" ? "nuevo" : "existente";
+
+                  setClienteMode(nextMode);
+                  setSelectedClienteId("");
+                  setClienteSearch("");
+                  setClienteNombre("");
+                }}
+              >
+                {clienteMode === "existente" ? <FiUserPlus /> : <FiSearch />}
+              </button>
+            </div>
+
+            {clienteMode === "existente" ? (
+              <div className="client-search-box">
+                <label className="form-field">
+                  <span>Buscar cliente</span>
+                  <input
+                    type="search"
+                    value={clienteSearch}
+                    onChange={(event) => {
+                      setClienteSearch(event.target.value);
+                      setSelectedClienteId("");
+                    }}
+                    placeholder="Nombre, apellido o teléfono..."
+                  />
+                </label>
+
+                <div className="client-search-results">
+                  {clientesFiltrados.length === 0 ? (
+                    <p className="client-picker-hint">No encontré clientes con esa búsqueda.</p>
+                  ) : (
+                    clientesFiltrados.map((cliente) => (
+                      <button
+                        key={cliente.id}
+                        type="button"
+                        className={`client-result-button ${
+                          selectedClienteId === cliente.id ? "is-selected" : ""
+                        }`}
+                        onClick={() => {
+                          setSelectedClienteId(cliente.id);
+                          setClienteSearch(getClientFullName(cliente));
+                        }}
+                      >
+                        <strong>{getClientFullName(cliente)}</strong>
+                        <small>{getClientPhoneLabel(cliente)}</small>
+                      </button>
+                    ))
+                  )}
+                </div>
+
+                {selectedCliente && (
+                  <p className="phone-preview">
+                    Cliente seleccionado: <strong>{getClientFullName(selectedCliente)}</strong> ·{" "}
+                    {getClientPhoneLabel(selectedCliente)}
+                  </p>
+                )}
+              </div>
+            ) : (
+              <label className="form-field">
+                <span>Nombre del cliente nuevo</span>
+                <input
+                  type="text"
+                  value={clienteNombre}
+                  onChange={(event) =>
+                    setClienteNombre(capitalizeWordsInput(event.target.value))
+                  }
+                  placeholder="Ej: Cliente de paso"
+                  required
                 />
-              ))}
-            </datalist>
-          </label>
-
+              </label>
+            )}
+          </div>
           <label className="form-field">
             <span>Medio de pago</span>
             <select
