@@ -9,6 +9,10 @@ import {
   preventInvalidNumberKeys,
 } from "../utils/formGuards";
 import { formatCurrency } from "../utils/formatters";
+import {
+  allocateAtencionPayments,
+  registerCajaIncome,
+} from "../utils/cajaHelpers";
 
 const emptyPhoneForm = {
   paisTelefono: "+54",
@@ -215,7 +219,9 @@ export default function AtencionRapidaPage() {
   const [showClientPhone, setShowClientPhone] = useState(false);
   const [phoneForm, setPhoneForm] = useState(emptyPhoneForm);
 
-  const [medioPagoId, setMedioPagoId] = useState("");
+  const [pagoMedioId, setPagoMedioId] = useState("");
+  const [pagoMonto, setPagoMonto] = useState("");
+  const [pagosSeleccionados, setPagosSeleccionados] = useState([]);
   const [tipoPrecio, setTipoPrecio] = useState("lista");
   const [observaciones, setObservaciones] = useState("");
 
@@ -269,6 +275,17 @@ export default function AtencionRapidaPage() {
 
   const total = totalServicios + totalProductos;
 
+  const totalPagos = useMemo(
+    () =>
+      pagosSeleccionados.reduce(
+        (acc, pago) => acc + numberFromInput(pago.monto),
+        0
+      ),
+    [pagosSeleccionados]
+  );
+
+  const saldoPendiente = roundTo(total - totalPagos, 2);
+
   useEffect(() => {
     async function loadServicioCostos() {
       if (!negocio?.id) return;
@@ -298,7 +315,9 @@ export default function AtencionRapidaPage() {
     setClienteNombre("");
     setShowClientPhone(false);
     setPhoneForm(emptyPhoneForm);
-    setMedioPagoId("");
+    setPagoMedioId("");
+    setPagoMonto("");
+    setPagosSeleccionados([]);
     setTipoPrecio("lista");
     setObservaciones("");
     setServiciosSeleccionados([]);
@@ -352,8 +371,10 @@ export default function AtencionRapidaPage() {
     );
   }
 
-  function handleMedioPagoChange(nextMedioPagoId) {
-    setMedioPagoId(nextMedioPagoId);
+  function handlePagoMedioChange(nextMedioPagoId) {
+    setPagoMedioId(nextMedioPagoId);
+
+    if (pagosSeleccionados.length > 0) return;
 
     const selectedMedioPago = mediosPago.find(
       (medio) => medio.id === nextMedioPagoId
@@ -365,6 +386,68 @@ export default function AtencionRapidaPage() {
 
     setTipoPrecio(nextTipoPrecio);
     updateSuggestedPrices(nextTipoPrecio);
+  }
+
+  function getMedioPagoName(medioPagoId) {
+    return (
+      mediosPago.find((medio) => medio.id === medioPagoId)?.nombre ||
+      "Medio de pago"
+    );
+  }
+
+  function addPago({ completarSaldo = false } = {}) {
+    if (!pagoMedioId) {
+      setFeedback("Seleccioná un medio de pago para agregar el cobro.");
+      return;
+    }
+
+    const monto = completarSaldo ? saldoPendiente : numberFromInput(pagoMonto);
+
+    if (monto <= 0) {
+      setFeedback("El monto del pago debe ser mayor a cero.");
+      return;
+    }
+
+    if (monto > saldoPendiente + 0.01) {
+      setFeedback("El monto del pago supera el saldo pendiente.");
+      return;
+    }
+
+    setPagosSeleccionados((current) => [
+      ...current,
+      {
+        tempId: createTempId(),
+        medio_pago_id: pagoMedioId,
+        monto: String(roundTo(monto, 2)),
+      },
+    ]);
+
+    setPagoMonto("");
+    setFeedback("");
+  }
+
+  function removePago(tempId) {
+    setPagosSeleccionados((current) =>
+      current.filter((pago) => pago.tempId !== tempId)
+    );
+  }
+
+  function updatePagoMonto(tempId, value) {
+    const cleanValue = normalizeDecimalInput(value);
+
+    setPagosSeleccionados((current) =>
+      current.map((pago) =>
+        pago.tempId === tempId ? { ...pago, monto: cleanValue } : pago
+      )
+    );
+  }
+
+  function updatePagoMedio(tempId, medioPagoId) {
+    setPagosSeleccionados((current) =>
+      current.map((pago) =>
+        pago.tempId === tempId ? { ...pago, medio_pago_id: medioPagoId } : pago
+      )
+    );
   }
 
   function handleTipoPrecioChange(nextTipoPrecio) {
@@ -670,8 +753,20 @@ export default function AtencionRapidaPage() {
       return "Agregá al menos un servicio o producto.";
     }
 
-    if (!medioPagoId) {
-      return "Seleccioná un medio de pago.";
+    if (pagosSeleccionados.length === 0) {
+      return "Agregá al menos un pago.";
+    }
+
+    const invalidPago = pagosSeleccionados.find(
+      (pago) => !pago.medio_pago_id || numberFromInput(pago.monto) <= 0
+    );
+
+    if (invalidPago) {
+      return "Revisá los medios de pago. Cada pago debe tener medio y monto mayor a cero.";
+    }
+
+    if (Math.abs(totalPagos - total) > 0.01) {
+      return `El total de pagos (${formatCurrency(totalPagos)}) debe coincidir con el total de la atención (${formatCurrency(total)}).`;
     }
 
     if (total <= 0) {
@@ -864,18 +959,30 @@ export default function AtencionRapidaPage() {
         await discountProductStock();
       }
 
-      const { error: pagoError } = await supabase.from("pagos").insert({
-        negocio_id: negocio.id,
-        sucursal_id: sucursal.id,
-        atencion_id: atencion.id,
-        caja_id: null,
-        cliente_id: cliente.id,
-        monto: total,
-        medio_pago_id: medioPagoId,
-        estado: "registrado",
+      const paymentAllocations = allocateAtencionPayments({
+        pagos: pagosSeleccionados.map((pago) => ({
+          medio_pago_id: pago.medio_pago_id,
+          monto: numberFromInput(pago.monto),
+        })),
+        mediosPago,
+        totalServicios,
+        totalProductos,
       });
 
-      if (pagoError) throw pagoError;
+      for (const allocation of paymentAllocations) {
+        await registerCajaIncome({
+          supabase,
+          negocioId: negocio.id,
+          sucursalId: sucursal.id,
+          atencionId: atencion.id,
+          clienteId: cliente.id,
+          medioPagoId: allocation.medio_pago_id,
+          tipoCaja: allocation.tipo_caja,
+          monto: allocation.monto,
+          origen: allocation.origen,
+          descripcion: allocation.descripcion,
+        });
+      }
 
       setFeedback("Atención registrada correctamente.");
       resetForm();
@@ -1006,21 +1113,6 @@ export default function AtencionRapidaPage() {
             )}
           </div>
           <label className="form-field">
-            <span>Medio de pago</span>
-            <select
-              value={medioPagoId}
-              onChange={(event) => handleMedioPagoChange(event.target.value)}
-            >
-              <option value="">Seleccionar</option>
-              {mediosPago.map((medio) => (
-                <option key={medio.id} value={medio.id}>
-                  {medio.nombre}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="form-field">
             <span>Tipo de precio</span>
             <select
               value={tipoPrecio}
@@ -1102,6 +1194,121 @@ export default function AtencionRapidaPage() {
             </p>
           </div>
         )}
+
+        <section className="payment-box">
+          <div className="toolbar">
+            <div>
+              <strong>Medios de pago</strong>
+              <small>
+                En pagos mixtos, el dinero digital cubre servicios primero y el
+                efectivo queda priorizado para productos.
+              </small>
+            </div>
+          </div>
+
+          <div className="payment-grid">
+            <label className="form-field">
+              <span>Medio</span>
+              <select
+                value={pagoMedioId}
+                onChange={(event) => handlePagoMedioChange(event.target.value)}
+              >
+                <option value="">Seleccionar</option>
+                {mediosPago.map((medio) => (
+                  <option key={medio.id} value={medio.id}>
+                    {medio.nombre}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="form-field">
+              <span>Monto</span>
+              <input
+                type="text"
+                inputMode="decimal"
+                value={pagoMonto}
+                onKeyDown={preventInvalidNumberKeys}
+                onChange={(event) => setPagoMonto(normalizeDecimalInput(event.target.value))}
+                placeholder={saldoPendiente > 0 ? String(roundTo(saldoPendiente, 2)) : "0"}
+              />
+            </label>
+
+            <div className="payment-actions">
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => addPago({ completarSaldo: true })}
+              >
+                Completar saldo
+              </button>
+
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => addPago()}
+              >
+                Agregar pago
+              </button>
+            </div>
+          </div>
+
+          {pagosSeleccionados.length > 0 && (
+            <div className="payment-lines">
+              {pagosSeleccionados.map((pago) => (
+                <article key={pago.tempId} className="line-item payment-line-item">
+                  <label className="mini-field">
+                    <span>Medio</span>
+                    <select
+                      value={pago.medio_pago_id}
+                      onChange={(event) =>
+                        updatePagoMedio(pago.tempId, event.target.value)
+                      }
+                    >
+                      <option value="">Seleccionar</option>
+                      {mediosPago.map((medio) => (
+                        <option key={medio.id} value={medio.id}>
+                          {medio.nombre}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className="mini-field">
+                    <span>Monto</span>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      value={pago.monto}
+                      onKeyDown={preventInvalidNumberKeys}
+                      onChange={(event) =>
+                        updatePagoMonto(pago.tempId, event.target.value)
+                      }
+                    />
+                  </label>
+
+                  <strong>{formatCurrency(numberFromInput(pago.monto))}</strong>
+
+                  <button
+                    type="button"
+                    className="icon-button"
+                    onClick={() => removePago(pago.tempId)}
+                    aria-label={`Quitar pago ${getMedioPagoName(pago.medio_pago_id)}`}
+                  >
+                    <FiTrash2 />
+                  </button>
+                </article>
+              ))}
+            </div>
+          )}
+
+          <div className="payment-summary">
+            <span>Pagado: <strong>{formatCurrency(totalPagos)}</strong></span>
+            <span className={Math.abs(saldoPendiente) <= 0.01 ? "is-ok" : "is-pending"}>
+              Saldo: <strong>{formatCurrency(saldoPendiente)}</strong>
+            </span>
+          </div>
+        </section>
 
         <div className="sale-picker-grid">
           <label className="form-field">

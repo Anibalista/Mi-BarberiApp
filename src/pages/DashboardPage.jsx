@@ -66,7 +66,7 @@ const advancedOptions = [
   },
   {
     title: "Caja diaria",
-    description: "Apertura, movimientos y cierre.",
+    description: "Movimientos, egresos y cierre.",
     icon: FiArchive,
     to: "/caja",
   },
@@ -209,11 +209,12 @@ export default function DashboardPage() {
           <strong>$0</strong>
         </article>
 
-        <article className="stat-card">
+        <Link to="/caja" className="stat-card stat-card--link">
           <FiPieChart />
           <span>Caja actual</span>
-          <strong>Sin abrir</strong>
-        </article>
+          <strong>Ver caja</strong>
+          <small>Movimientos y cierre diario</small>
+        </Link>
 
         <article className="stat-card">
           <FiUsers />

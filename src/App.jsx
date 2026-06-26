@@ -9,6 +9,7 @@ import AtencionRapidaPage from "./pages/AtencionRapidaPage";
 import ClientesPage from "./pages/ClientesPage";
 import ServiciosPage from "./pages/ServiciosPage";
 import ProductosPage from "./pages/ProductosPage";
+import CajaPage from "./pages/CajaPage";
 import PlaceholderPage from "./pages/PlaceholderPage";
 
 function LoadingScreen({ text = "Cargando Mi BarberiApp..." }) {
@@ -50,16 +51,7 @@ function ProtectedRoutes() {
         <Route path="/clientes" element={<ClientesPage />} />
         <Route path="/servicios" element={<ServiciosPage />} />
         <Route path="/productos" element={<ProductosPage />} />
-
-        <Route
-          path="/caja"
-          element={
-            <PlaceholderPage
-              title="Caja diaria"
-              description="Acá vamos a crear apertura, movimientos y cierre de caja."
-            />
-          }
-        />
+        <Route path="/caja" element={<CajaPage />} />
 
         <Route
           path="/finanzas"

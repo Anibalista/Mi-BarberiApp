@@ -1709,3 +1709,318 @@ a {
 .form-grid {
   align-items: start;
 }
+.payment-box {
+  display: grid;
+  gap: 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: 1rem;
+  background: var(--color-surface-soft);
+}
+
+.payment-grid {
+  display: grid;
+  grid-template-columns: minmax(12rem, 1fr) minmax(10rem, 0.8fr) auto;
+  gap: 0.85rem;
+  align-items: end;
+}
+
+.payment-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.payment-lines {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.payment-line-item {
+  grid-template-columns: minmax(12rem, 1fr) minmax(8rem, 0.7fr) auto auto;
+}
+
+.payment-summary {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  border-top: 1px solid var(--color-border);
+  padding-top: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+.payment-summary span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  border-radius: 999px;
+  padding: 0.35rem 0.65rem;
+  background: var(--color-surface);
+}
+
+.payment-summary .is-ok {
+  color: var(--color-success);
+}
+
+.payment-summary .is-pending {
+  color: var(--color-warning);
+}
+
+@media (max-width: 800px) {
+  .payment-grid,
+  .payment-line-item {
+    grid-template-columns: 1fr;
+  }
+
+  .payment-actions,
+  .payment-summary {
+    justify-content: stretch;
+  }
+
+  .payment-actions .btn,
+  .payment-summary span {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* Caja diaria */
+.caja-toolbar-card {
+  align-items: stretch;
+}
+
+.caja-date-field {
+  min-width: 12rem;
+}
+
+.caja-summary-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.caja-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.caja-card {
+  display: grid;
+  gap: 0.85rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: 1rem;
+  background: var(--color-surface-soft);
+}
+
+.caja-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.caja-card__header strong,
+.caja-card__header small {
+  display: block;
+}
+
+.caja-card__header small,
+.caja-card > small {
+  color: var(--color-text-muted);
+}
+
+.caja-status {
+  display: inline-flex;
+  border-radius: 999px;
+  padding: 0.35rem 0.65rem;
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.caja-status--abierta,
+.caja-status--reabierta {
+  background: rgba(21, 128, 61, 0.13);
+  color: var(--color-success);
+}
+
+.caja-status--cerrada {
+  background: rgba(100, 116, 139, 0.14);
+  color: var(--color-text-muted);
+}
+
+.caja-card__amounts {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.caja-card__amounts div {
+  border-radius: var(--radius-lg);
+  padding: 0.65rem;
+  background: var(--color-surface);
+}
+
+.caja-card__amounts span,
+.caja-card__amounts strong {
+  display: block;
+}
+
+.caja-card__amounts span {
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.caja-card__amounts strong {
+  margin-top: 0.2rem;
+  font-size: 0.95rem;
+}
+
+.caja-close-box {
+  display: grid;
+  gap: 0.75rem;
+  border-top: 1px solid var(--color-border);
+  padding-top: 0.85rem;
+}
+
+.caja-closed-box {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  border-radius: var(--radius-lg);
+  padding: 0.65rem 0.75rem;
+  background: rgba(21, 128, 61, 0.1);
+  color: var(--color-success);
+  font-weight: 900;
+}
+
+.caja-card-actions {
+  justify-content: flex-end;
+}
+
+.caja-expense-form {
+  display: grid;
+  grid-template-columns: 1.2fr 0.6fr 1.4fr auto;
+  gap: 0.85rem;
+  align-items: end;
+}
+
+.amount-positive {
+  color: var(--color-success);
+  font-weight: 900;
+}
+
+.amount-negative {
+  color: var(--color-danger);
+  font-weight: 900;
+}
+
+.stat-card--link {
+  color: inherit;
+  text-decoration: none;
+  transition: transform 0.18s ease, border-color 0.18s ease;
+}
+
+.stat-card--link:hover {
+  transform: translateY(-1px);
+  border-color: var(--color-primary);
+}
+
+.stat-card--link small {
+  color: var(--color-text-muted);
+}
+
+@media (max-width: 1100px) {
+  .caja-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .caja-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .caja-expense-form {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 700px) {
+  .caja-summary-grid,
+  .caja-card__amounts,
+  .caja-expense-form {
+    grid-template-columns: 1fr;
+  }
+
+  .caja-card__header {
+    flex-direction: column;
+  }
+}
+/* Totales generales por medio de pago en Caja diaria */
+.caja-control-card {
+  display: grid;
+  gap: 1rem;
+}
+
+.caja-control-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.caja-control-item {
+  display: grid;
+  gap: 0.85rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: 1rem;
+  background: var(--color-surface-soft);
+}
+
+.caja-control-item__title {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.caja-control-item__title svg {
+  width: 1.35rem;
+  height: 1.35rem;
+  color: var(--color-primary);
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+.caja-control-item__title strong,
+.caja-control-item__title small {
+  display: block;
+}
+
+.caja-control-item__title small,
+.caja-control-difference span {
+  color: var(--color-text-muted);
+}
+
+.caja-control-difference {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border-radius: var(--radius-lg);
+  padding: 0.75rem;
+  background: var(--color-surface);
+}
+
+.caja-control-actions {
+  justify-content: flex-end;
+}
+
+@media (max-width: 700px) {
+  .caja-control-grid {
+    grid-template-columns: 1fr;
+  }
+}
