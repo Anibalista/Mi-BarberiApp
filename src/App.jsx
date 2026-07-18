@@ -10,6 +10,9 @@ import ClientesPage from "./pages/ClientesPage";
 import ServiciosPage from "./pages/ServiciosPage";
 import ProductosPage from "./pages/ProductosPage";
 import CajaPage from "./pages/CajaPage";
+import FinanzasPage from "./pages/FinanzasPage";
+import ComisionesPage from "./pages/ComisionesPage";
+import BarberosPage from "./pages/BarberosPage";
 import PlaceholderPage from "./pages/PlaceholderPage";
 
 function LoadingScreen({ text = "Cargando Mi BarberiApp..." }) {
@@ -51,27 +54,10 @@ function ProtectedRoutes() {
         <Route path="/clientes" element={<ClientesPage />} />
         <Route path="/servicios" element={<ServiciosPage />} />
         <Route path="/productos" element={<ProductosPage />} />
+        <Route path="/barberos" element={<BarberosPage />} />
         <Route path="/caja" element={<CajaPage />} />
-
-        <Route
-          path="/finanzas"
-          element={
-            <PlaceholderPage
-              title="Finanzas"
-              description="Acá van los ingresos, egresos, retiros y comparativas."
-            />
-          }
-        />
-
-        <Route
-          path="/comisiones"
-          element={
-            <PlaceholderPage
-              title="Comisiones"
-              description="Acá vamos a gestionar reglas, liquidaciones y pagos a barberos."
-            />
-          }
-        />
+        <Route path="/finanzas" element={<FinanzasPage />} />
+        <Route path="/comisiones" element={<ComisionesPage />} />
 
         <Route
           path="/reportes"

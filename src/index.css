@@ -2024,3 +2024,594 @@ a {
     grid-template-columns: 1fr;
   }
 }
+
+/* Finanzas */
+
+.finance-filter-card {
+  display: grid;
+  gap: 1rem;
+}
+
+.finance-toolbar {
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.finance-preset-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.chip-button {
+  border: 1px solid var(--border-color);
+  background: var(--card-bg);
+  color: var(--text-color);
+  border-radius: 999px;
+  padding: 0.55rem 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.chip-button.is-active {
+  background: var(--accent-color);
+  border-color: var(--accent-color);
+  color: white;
+}
+
+.finance-date-grid,
+.finance-filter-inline {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.9rem;
+}
+
+.finance-stats-grid {
+  align-items: stretch;
+}
+
+.finance-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.finance-panel {
+  display: grid;
+  gap: 1rem;
+}
+
+.finance-two-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.8rem;
+}
+
+.finance-mini-card {
+  border: 1px solid var(--border-color);
+  border-radius: 1rem;
+  padding: 1rem;
+  display: grid;
+  gap: 0.25rem;
+  background: var(--surface-color);
+}
+
+.finance-mini-card svg {
+  font-size: 1.35rem;
+}
+
+.finance-mini-card span {
+  color: var(--muted-color);
+  font-size: 0.9rem;
+}
+
+.finance-mini-card strong {
+  font-size: 1.15rem;
+}
+
+.finance-table-list,
+.finance-movement-list,
+.finance-cashbox-list {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.finance-row-card,
+.finance-movement-card {
+  border: 1px solid var(--border-color);
+  border-radius: 1rem;
+  padding: 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  background: var(--surface-color);
+}
+
+.finance-row-card div,
+.finance-movement-main div {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.finance-row-card small,
+.finance-movement-card small {
+  color: var(--muted-color);
+}
+
+.finance-row-card > span {
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.finance-row-amounts {
+  text-align: right;
+  display: grid;
+  gap: 0.2rem;
+  font-size: 0.9rem;
+}
+
+.finance-movement-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.movement-dot {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 999px;
+  margin-top: 0.35rem;
+  flex: 0 0 auto;
+}
+
+.movement-dot.is-positive {
+  background: #22c55e;
+}
+
+.movement-dot.is-negative {
+  background: #ef4444;
+}
+
+.finance-movement-amount {
+  text-align: right;
+  display: grid;
+  gap: 0.25rem;
+  white-space: nowrap;
+}
+
+.finance-movement-amount .is-positive {
+  color: #16a34a;
+}
+
+.finance-movement-amount .is-negative {
+  color: #dc2626;
+}
+
+@media (max-width: 760px) {
+  .finance-date-grid,
+  .finance-filter-inline,
+  .finance-summary-grid,
+  .finance-two-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .finance-row-card,
+  .finance-movement-card {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .finance-row-card > span,
+  .finance-row-amounts,
+  .finance-movement-amount {
+    text-align: left;
+    white-space: normal;
+  }
+}
+
+.commissions-filters .toolbar,
+.work-card .toolbar {
+  gap: 1rem;
+}
+
+.commissions-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+  margin: 1rem 0;
+}
+
+.commission-detail-list {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.commission-detail-card {
+  display: grid;
+  gap: 0.85rem;
+  padding: 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: 1rem;
+  background: var(--surface-color);
+}
+
+.commission-detail-card small,
+.commission-detail-meta,
+.commission-detail-grid span {
+  color: var(--muted-color);
+}
+
+.commission-detail-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  font-size: 0.85rem;
+}
+
+.commission-detail-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.commission-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.commission-detail-grid span {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.75rem;
+  border-radius: 0.85rem;
+  background: var(--soft-surface-color);
+  font-size: 0.82rem;
+}
+
+.commission-detail-grid strong {
+  color: var(--text-color);
+  font-size: 0.95rem;
+}
+
+@media (max-width: 900px) {
+  .commissions-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .commission-detail-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .commissions-summary-grid,
+  .commission-detail-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.barberos-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.barberos-summary-card {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.35rem 0.8rem;
+  align-items: center;
+  padding: 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: 1rem;
+  background: var(--surface-color);
+}
+
+.barberos-summary-card svg {
+  grid-row: 1 / span 2;
+  width: 1.6rem;
+  height: 1.6rem;
+}
+
+.barberos-summary-card span,
+.barberos-summary-card strong {
+  min-width: 0;
+}
+
+.barberos-summary-card strong {
+  font-size: 1.35rem;
+}
+
+.barberos-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  padding: 0.35rem;
+  border: 1px solid var(--border-color);
+  border-radius: 1rem;
+  background: var(--surface-color);
+}
+
+.barberos-tabs button {
+  display: inline-flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 2.8rem;
+  border: 0;
+  border-radius: 0.75rem;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.barberos-tabs button.is-active {
+  background: var(--primary-color);
+  color: var(--primary-contrast);
+}
+
+.barberos-toolbar-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: end;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.barberos-search-field {
+  margin: 0;
+}
+
+.barberos-search-input {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 0.75rem;
+  background: var(--input-background, transparent);
+}
+
+.barberos-search-input input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  outline: 0;
+}
+
+.barberos-show-inactive {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.8rem;
+  white-space: nowrap;
+}
+
+.barberos-form-card {
+  margin-bottom: 1rem;
+}
+
+.barberos-form-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.barberos-form-heading > div {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.barberos-option-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin: 1rem 0;
+}
+
+.barberos-check-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.9rem;
+  border: 1px solid var(--border-color);
+  border-radius: 0.85rem;
+}
+
+.barberos-check-card input {
+  margin-top: 0.2rem;
+}
+
+.barberos-check-card span {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.barberos-check-card small {
+  line-height: 1.35;
+}
+
+.barberos-commission-box {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(180px, 260px);
+  align-items: end;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px dashed var(--border-color);
+  border-radius: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+.barberos-description-field {
+  grid-column: 1 / -1;
+}
+
+.barberos-card-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.barbero-card,
+.puesto-card {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.barbero-card.is-inactive,
+.puesto-card.is-inactive {
+  opacity: 0.66;
+}
+
+.barbero-card__main {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+}
+
+.barbero-card__avatar {
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--primary-color);
+  color: var(--primary-contrast);
+  font-weight: 800;
+  font-size: 1.1rem;
+}
+
+.barbero-card__title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.barberos-status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.5rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  background: var(--surface-muted, rgba(127, 127, 127, 0.12));
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.barberos-status.is-inactive {
+  background: rgba(190, 50, 50, 0.12);
+}
+
+.barbero-card__details {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0;
+  margin-top: 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: 0.9rem;
+  overflow: hidden;
+}
+
+.barbero-card__details > div {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.9rem 1rem;
+}
+
+.barbero-card__details > div + div {
+  border-left: 1px solid var(--border-color);
+}
+
+.barbero-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.65rem;
+  margin-top: 1rem;
+}
+
+.puesto-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.puesto-card__header > div {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.puesto-card__header > svg {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.puesto-card__metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: 0.9rem;
+  overflow: hidden;
+}
+
+.puesto-card__metrics > div {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.9rem 1rem;
+  text-align: center;
+}
+
+.puesto-card__metrics > div + div {
+  border-left: 1px solid var(--border-color);
+}
+
+@media (max-width: 760px) {
+  .barberos-summary-grid,
+  .barberos-option-grid,
+  .puesto-card__metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .barberos-toolbar-card {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .barberos-toolbar-card .btn {
+    width: 100%;
+  }
+
+  .barberos-commission-box {
+    grid-template-columns: 1fr;
+  }
+
+  .barbero-card__details {
+    grid-template-columns: 1fr;
+  }
+
+  .barbero-card__details > div + div,
+  .puesto-card__metrics > div + div {
+    border-left: 0;
+    border-top: 1px solid var(--border-color);
+  }
+
+  .barbero-card__actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .barbero-card__actions .btn {
+    width: 100%;
+  }
+}

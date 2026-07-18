@@ -13,6 +13,7 @@ import {
   FiScissors,
   FiSettings,
   FiShoppingCart,
+  FiUserCheck,
   FiUsers,
 } from "react-icons/fi";
 import { Link } from "react-router-dom";
@@ -51,6 +52,12 @@ const advancedOptions = [
     description: "Alta, búsqueda e historial.",
     icon: FiUsers,
     to: "/clientes",
+  },
+  {
+    title: "Barberos y puestos",
+    description: "Equipo, categorías y comisiones.",
+    icon: FiUserCheck,
+    to: "/barberos",
   },
   {
     title: "Servicios",
@@ -98,7 +105,14 @@ const advancedOptions = [
 
 export default function DashboardPage() {
   const { user } = useAuth();
-  const { negocio, sucursal, clientes, servicios, productos } = useAppData();
+  const {
+    negocio,
+    sucursal,
+    clientes,
+    servicios,
+    productos,
+    colaboradores,
+  } = useAppData();
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   const userName =
@@ -221,7 +235,7 @@ export default function DashboardPage() {
           <span>Base cargada</span>
           <strong>
             {clientes.length} clientes · {servicios.length} servicios ·{" "}
-            {productos.length} productos
+            {productos.length} productos · {colaboradores.length} colaboradores
           </strong>
         </article>
       </section>

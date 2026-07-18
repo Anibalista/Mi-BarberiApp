@@ -12,6 +12,8 @@ export function AppDataProvider({ children }) {
   const [sucursal, setSucursal] = useState(null);
   const [colaborador, setColaborador] = useState(null);
 
+  const [colaboradores, setColaboradores] = useState([]);
+  const [categoriasColaborador, setCategoriasColaborador] = useState([]);
   const [clientes, setClientes] = useState([]);
   const [servicios, setServicios] = useState([]);
   const [productos, setProductos] = useState([]);
@@ -27,6 +29,8 @@ export function AppDataProvider({ children }) {
       setNegocio(null);
       setSucursal(null);
       setColaborador(null);
+      setColaboradores([]);
+      setCategoriasColaborador([]);
       setClientes([]);
       setServicios([]);
       setProductos([]);
@@ -73,6 +77,8 @@ export function AppDataProvider({ children }) {
         negocioResult,
         sucursalResult,
         colaboradorResult,
+        colaboradoresResult,
+        categoriasResult,
         clientesResult,
         serviciosResult,
         productosResult,
@@ -95,6 +101,18 @@ export function AppDataProvider({ children }) {
           .eq("negocio_id", negocioId)
           .eq("perfil_id", perfilData.id)
           .maybeSingle(),
+
+        supabase
+          .from("colaboradores")
+          .select("*")
+          .eq("negocio_id", negocioId)
+          .order("nombre_publico", { ascending: true }),
+
+        supabase
+          .from("categorias_colaborador")
+          .select("*")
+          .eq("negocio_id", negocioId)
+          .order("nombre", { ascending: true }),
 
         supabase
           .from("clientes")
@@ -134,6 +152,8 @@ export function AppDataProvider({ children }) {
       if (negocioResult.error) throw negocioResult.error;
       if (sucursalResult.error) throw sucursalResult.error;
       if (colaboradorResult.error) throw colaboradorResult.error;
+      if (colaboradoresResult.error) throw colaboradoresResult.error;
+      if (categoriasResult.error) throw categoriasResult.error;
       if (clientesResult.error) throw clientesResult.error;
       if (serviciosResult.error) throw serviciosResult.error;
       if (productosResult.error) throw productosResult.error;
@@ -143,6 +163,8 @@ export function AppDataProvider({ children }) {
       setNegocio(negocioResult.data ?? null);
       setSucursal(sucursalResult.data ?? null);
       setColaborador(colaboradorResult.data ?? null);
+      setColaboradores(colaboradoresResult.data ?? []);
+      setCategoriasColaborador(categoriasResult.data ?? []);
       setClientes(clientesResult.data ?? []);
       setServicios(serviciosResult.data ?? []);
       setProductos(productosResult.data ?? []);
@@ -176,6 +198,8 @@ export function AppDataProvider({ children }) {
       negocio,
       sucursal,
       colaborador,
+      colaboradores,
+      categoriasColaborador,
       clientes,
       servicios,
       productos,
@@ -190,6 +214,8 @@ export function AppDataProvider({ children }) {
       negocio,
       sucursal,
       colaborador,
+      colaboradores,
+      categoriasColaborador,
       clientes,
       servicios,
       productos,
