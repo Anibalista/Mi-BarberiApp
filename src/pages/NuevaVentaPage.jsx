@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { FiPhone, FiSave, FiShoppingCart, FiTrash2, FiSearch, FiUserPlus } from "react-icons/fi";
 import PageShell from "../components/layout/PageShell";
 import { useAppData } from "../context/AppDataContext";
@@ -13,6 +13,7 @@ import {
   allocateVentaProductoPayments,
   registerCajaIncome,
 } from "../utils/cajaHelpers";
+import { resolveProductCommissionSnapshot } from "../utils/commissionHelpers";
 
 const emptyPhoneForm = {
   paisTelefono: "+54",
@@ -163,6 +164,8 @@ export default function NuevaVentaPage() {
   const {
     negocio,
     sucursal,
+    colaborador,
+    colaboradores,
     productos,
     clientes,
     mediosPago,
@@ -186,6 +189,22 @@ export default function NuevaVentaPage() {
   );
 
 
+  const colaboradoresActivos = useMemo(
+    () =>
+      colaboradores
+        .filter((item) => item.activo)
+        .sort((a, b) =>
+          String(a.nombre_publico || "").localeCompare(
+            String(b.nombre_publico || ""),
+            "es"
+          )
+        ),
+    [colaboradores]
+  );
+
+  const [selectedColaboradorId, setSelectedColaboradorId] = useState(
+    colaborador?.id ?? ""
+  );
   const [clienteMode, setClienteMode] = useState("existente");
   const [selectedClienteId, setSelectedClienteId] = useState("");
   const [clienteSearch, setClienteSearch] = useState("");
@@ -209,6 +228,14 @@ export default function NuevaVentaPage() {
   const selectedCliente = useMemo(
     () => clientesOrdenados.find((cliente) => cliente.id === selectedClienteId),
     [clientesOrdenados, selectedClienteId]
+  );
+
+  const selectedColaborador = useMemo(
+    () =>
+      colaboradoresActivos.find(
+        (item) => item.id === selectedColaboradorId
+      ) ?? null,
+    [colaboradoresActivos, selectedColaboradorId]
   );
 
   const clientesFiltrados = useMemo(() => {
@@ -248,7 +275,14 @@ export default function NuevaVentaPage() {
 
   const saldoPendiente = roundTo(total - totalPagos, 2);
 
+  useEffect(() => {
+    if (!selectedColaboradorId && colaborador?.id) {
+      setSelectedColaboradorId(colaborador.id);
+    }
+  }, [colaborador?.id, selectedColaboradorId]);
+
   function resetForm() {
+    setSelectedColaboradorId(colaborador?.id ?? "");
     setClienteMode("existente");
     setSelectedClienteId("");
     setClienteSearch("");
@@ -534,6 +568,10 @@ export default function NuevaVentaPage() {
       return "No se encontró la sucursal actual.";
     }
 
+    if (!selectedColaboradorId || !selectedColaborador) {
+      return "Seleccioná quién realizó la venta.";
+    }
+
     if (clienteMode === "existente" && !selectedClienteId) {
       return "Seleccioná un cliente registrado o usá Nuevo cliente.";
     }
@@ -631,6 +669,17 @@ export default function NuevaVentaPage() {
       setIsSaving(true);
       setFeedback("");
 
+      const productCommissionSnapshots = await Promise.all(
+        productosSeleccionados.map((item) =>
+          resolveProductCommissionSnapshot({
+            supabase,
+            negocioId: negocio.id,
+            productoId: item.id,
+            subtotal: Number(item.subtotal || 0),
+          })
+        )
+      );
+
       const cliente = await getOrCreateClient(phoneResult);
 
       const { data: atencion, error: atencionError } = await supabase
@@ -640,7 +689,7 @@ export default function NuevaVentaPage() {
           sucursal_id: sucursal.id,
           cliente_id: cliente.id,
           nombre_cliente_temporal: null,
-          colaborador_id: null,
+          colaborador_id: selectedColaboradorId,
           tipo_atencion: "directa",
           estado: "cobrada",
           total_servicios: 0,
@@ -654,17 +703,27 @@ export default function NuevaVentaPage() {
 
       if (atencionError) throw atencionError;
 
-      const productosPayload = productosSeleccionados.map((item) => ({
-        atencion_id: atencion.id,
-        producto_id: item.id,
-        nombre_producto_snapshot: item.nombre,
-        cantidad: numberFromInput(item.cantidad),
-        precio_lista: item.precio_lista,
-        precio_efectivo: item.precio_efectivo,
-        precio_cobrado: numberFromInput(item.precio_cobrado),
-        costo_unitario: item.costo_unitario,
-        subtotal: Number(item.subtotal || 0),
-      }));
+      const productosPayload = productosSeleccionados.map(
+        (item, index) => ({
+          atencion_id: atencion.id,
+          producto_id: item.id,
+          colaborador_id: selectedColaboradorId,
+          nombre_producto_snapshot: item.nombre,
+          cantidad: numberFromInput(item.cantidad),
+          precio_lista: item.precio_lista,
+          precio_efectivo: item.precio_efectivo,
+          precio_cobrado: numberFromInput(item.precio_cobrado),
+          costo_unitario: item.costo_unitario,
+          subtotal: Number(item.subtotal || 0),
+          porcentaje_comision:
+            productCommissionSnapshots[index]?.porcentaje_comision ?? 0,
+          monto_comision:
+            productCommissionSnapshots[index]?.monto_comision ?? 0,
+          fuente_comision:
+            productCommissionSnapshots[index]?.fuente_comision ??
+            "sin_configurar",
+        })
+      );
 
       const { error: productosError } = await supabase
         .from("atencion_productos")
@@ -701,7 +760,10 @@ export default function NuevaVentaPage() {
       await refreshAppData();
     } catch (error) {
       console.error("Error registrando venta:", error);
-      setFeedback("No se pudo registrar la venta.");
+      setFeedback(
+        error?.message ||
+          "No se pudo registrar la venta ni calcular sus comisiones."
+      );
     } finally {
       setIsSaving(false);
     }
@@ -819,6 +881,29 @@ export default function NuevaVentaPage() {
               </label>
             )}
           </div>
+
+          <label className="form-field">
+            <span>Vendido por</span>
+            <select
+              value={selectedColaboradorId}
+              onChange={(event) =>
+                setSelectedColaboradorId(event.target.value)
+              }
+              required
+            >
+              <option value="">Seleccionar colaborador</option>
+              {colaboradoresActivos.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.nombre_publico}
+                </option>
+              ))}
+            </select>
+            <small>
+              La comisión de productos se calcula automáticamente y no puede
+              editarse desde esta pantalla.
+            </small>
+          </label>
+
           <label className="form-field">
             <span>Tipo de precio</span>
             <select

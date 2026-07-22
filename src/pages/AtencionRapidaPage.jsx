@@ -13,6 +13,10 @@ import {
   allocateAtencionPayments,
   registerCajaIncome,
 } from "../utils/cajaHelpers";
+import {
+  resolveProductCommissionSnapshot,
+  resolveServiceCommissionSnapshot,
+} from "../utils/commissionHelpers";
 
 const emptyPhoneForm = {
   paisTelefono: "+54",
@@ -186,6 +190,7 @@ export default function AtencionRapidaPage() {
     negocio,
     sucursal,
     colaborador,
+    colaboradores,
     servicios,
     productos,
     clientes,
@@ -210,7 +215,23 @@ export default function AtencionRapidaPage() {
   );
 
 
+  const colaboradoresActivos = useMemo(
+    () =>
+      colaboradores
+        .filter((item) => item.activo)
+        .sort((a, b) =>
+          String(a.nombre_publico || "").localeCompare(
+            String(b.nombre_publico || ""),
+            "es"
+          )
+        ),
+    [colaboradores]
+  );
+
   const [servicioCostos, setServicioCostos] = useState([]);
+  const [selectedColaboradorId, setSelectedColaboradorId] = useState(
+    colaborador?.id ?? ""
+  );
 
   const [clienteMode, setClienteMode] = useState("existente");
   const [selectedClienteId, setSelectedClienteId] = useState("");
@@ -236,6 +257,14 @@ export default function AtencionRapidaPage() {
   const selectedCliente = useMemo(
     () => clientesOrdenados.find((cliente) => cliente.id === selectedClienteId),
     [clientesOrdenados, selectedClienteId]
+  );
+
+  const selectedColaborador = useMemo(
+    () =>
+      colaboradoresActivos.find(
+        (item) => item.id === selectedColaboradorId
+      ) ?? null,
+    [colaboradoresActivos, selectedColaboradorId]
   );
 
   const clientesFiltrados = useMemo(() => {
@@ -287,6 +316,12 @@ export default function AtencionRapidaPage() {
   const saldoPendiente = roundTo(total - totalPagos, 2);
 
   useEffect(() => {
+    if (!selectedColaboradorId && colaborador?.id) {
+      setSelectedColaboradorId(colaborador.id);
+    }
+  }, [colaborador?.id, selectedColaboradorId]);
+
+  useEffect(() => {
     async function loadServicioCostos() {
       if (!negocio?.id) return;
 
@@ -309,6 +344,7 @@ export default function AtencionRapidaPage() {
   }, [negocio?.id]);
 
   function resetForm() {
+    setSelectedColaboradorId(colaborador?.id ?? "");
     setClienteMode("existente");
     setSelectedClienteId("");
     setClienteSearch("");
@@ -737,6 +773,17 @@ export default function AtencionRapidaPage() {
       return "No se encontró la sucursal actual.";
     }
 
+    if (!selectedColaboradorId || !selectedColaborador) {
+      return "Seleccioná quién realizó la atención o venta.";
+    }
+
+    if (
+      serviciosSeleccionados.length > 0 &&
+      !selectedColaborador.es_barbero
+    ) {
+      return "El colaborador seleccionado no está habilitado para realizar servicios.";
+    }
+
     if (clienteMode === "existente" && !selectedClienteId) {
       return "Seleccioná un cliente registrado o usá Nuevo cliente.";
     }
@@ -890,6 +937,30 @@ export default function AtencionRapidaPage() {
       setIsSaving(true);
       setFeedback("");
 
+      const serviceCommissionSnapshots = await Promise.all(
+        serviciosSeleccionados.map((item) =>
+          resolveServiceCommissionSnapshot({
+            supabase,
+            negocioId: negocio.id,
+            colaboradorId: selectedColaboradorId,
+            servicioId: item.id,
+            subtotal: Number(item.subtotal || 0),
+            cantidad: numberFromInput(item.cantidad),
+          })
+        )
+      );
+
+      const productCommissionSnapshots = await Promise.all(
+        productosSeleccionados.map((item) =>
+          resolveProductCommissionSnapshot({
+            supabase,
+            negocioId: negocio.id,
+            productoId: item.id,
+            subtotal: Number(item.subtotal || 0),
+          })
+        )
+      );
+
       const cliente = await getOrCreateClient(phoneResult);
 
       const { data: atencion, error: atencionError } = await supabase
@@ -899,7 +970,7 @@ export default function AtencionRapidaPage() {
           sucursal_id: sucursal.id,
           cliente_id: cliente.id,
           nombre_cliente_temporal: null,
-          colaborador_id: colaborador?.id ?? null,
+          colaborador_id: selectedColaboradorId,
           tipo_atencion: "directa",
           estado: "cobrada",
           total_servicios: totalServicios,
@@ -914,19 +985,23 @@ export default function AtencionRapidaPage() {
       if (atencionError) throw atencionError;
 
       if (serviciosSeleccionados.length > 0) {
-        const serviciosPayload = serviciosSeleccionados.map((item) => ({
-          atencion_id: atencion.id,
-          servicio_id: item.id,
-          colaborador_id: colaborador?.id ?? null,
-          nombre_servicio_snapshot: item.nombre,
-          precio_lista: item.precio_lista,
-          precio_efectivo: item.precio_efectivo,
-          precio_cobrado: numberFromInput(item.precio_cobrado),
-          cantidad: numberFromInput(item.cantidad),
-          subtotal: Number(item.subtotal || 0),
-          porcentaje_comision: 0,
-          monto_comision: 0,
-        }));
+        const serviciosPayload = serviciosSeleccionados.map(
+          (item, index) => ({
+            atencion_id: atencion.id,
+            servicio_id: item.id,
+            colaborador_id: selectedColaboradorId,
+            nombre_servicio_snapshot: item.nombre,
+            precio_lista: item.precio_lista,
+            precio_efectivo: item.precio_efectivo,
+            precio_cobrado: numberFromInput(item.precio_cobrado),
+            cantidad: numberFromInput(item.cantidad),
+            subtotal: Number(item.subtotal || 0),
+            porcentaje_comision:
+              serviceCommissionSnapshots[index]?.porcentaje_comision ?? 0,
+            monto_comision:
+              serviceCommissionSnapshots[index]?.monto_comision ?? 0,
+          })
+        );
 
         const { error: serviciosError } = await supabase
           .from("atencion_servicios")
@@ -938,17 +1013,27 @@ export default function AtencionRapidaPage() {
       await insertAtencionCostosAndDiscountInsumos(atencion.id);
 
       if (productosSeleccionados.length > 0) {
-        const productosPayload = productosSeleccionados.map((item) => ({
-          atencion_id: atencion.id,
-          producto_id: item.id,
-          nombre_producto_snapshot: item.nombre,
-          cantidad: numberFromInput(item.cantidad),
-          precio_lista: item.precio_lista,
-          precio_efectivo: item.precio_efectivo,
-          precio_cobrado: numberFromInput(item.precio_cobrado),
-          costo_unitario: item.costo_unitario,
-          subtotal: Number(item.subtotal || 0),
-        }));
+        const productosPayload = productosSeleccionados.map(
+          (item, index) => ({
+            atencion_id: atencion.id,
+            producto_id: item.id,
+            colaborador_id: selectedColaboradorId,
+            nombre_producto_snapshot: item.nombre,
+            cantidad: numberFromInput(item.cantidad),
+            precio_lista: item.precio_lista,
+            precio_efectivo: item.precio_efectivo,
+            precio_cobrado: numberFromInput(item.precio_cobrado),
+            costo_unitario: item.costo_unitario,
+            subtotal: Number(item.subtotal || 0),
+            porcentaje_comision:
+              productCommissionSnapshots[index]?.porcentaje_comision ?? 0,
+            monto_comision:
+              productCommissionSnapshots[index]?.monto_comision ?? 0,
+            fuente_comision:
+              productCommissionSnapshots[index]?.fuente_comision ??
+              "sin_configurar",
+          })
+        );
 
         const { error: productosError } = await supabase
           .from("atencion_productos")
@@ -995,6 +1080,10 @@ export default function AtencionRapidaPage() {
         code: error?.code,
         fullError: error,
       });
+      setFeedback(
+        error?.message ||
+          "No se pudo registrar la atención ni calcular sus comisiones."
+      );
     } finally {
       setIsSaving(false);
     }
@@ -1112,6 +1201,30 @@ export default function AtencionRapidaPage() {
               </label>
             )}
           </div>
+
+          <label className="form-field">
+            <span>Atendido / vendido por</span>
+            <select
+              value={selectedColaboradorId}
+              onChange={(event) =>
+                setSelectedColaboradorId(event.target.value)
+              }
+              required
+            >
+              <option value="">Seleccionar colaborador</option>
+              {colaboradoresActivos.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.nombre_publico}
+                  {!item.es_barbero ? " · Solo ventas" : ""}
+                </option>
+              ))}
+            </select>
+            <small>
+              La comisión se calcula automáticamente según la configuración
+              vigente y no puede editarse desde esta pantalla.
+            </small>
+          </label>
+
           <label className="form-field">
             <span>Tipo de precio</span>
             <select

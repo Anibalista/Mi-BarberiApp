@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   FiArrowDownCircle,
   FiArrowUpCircle,
+  FiBriefcase,
   FiCalendar,
   FiCreditCard,
   FiDollarSign,
@@ -46,6 +47,13 @@ function getArgentinaDateValue(date = new Date()) {
 
 function dateFromInputValue(dateValue) {
   return new Date(`${dateValue}T00:00:00`);
+}
+
+function getNextDateValue(dateValue) {
+  const date = dateFromInputValue(dateValue);
+  date.setDate(date.getDate() + 1);
+
+  return formatDateValue(date);
 }
 
 function getPresetRange(preset) {
@@ -188,6 +196,8 @@ export default function FinanzasPage() {
   const [dateTo, setDateTo] = useState(() => getPresetRange("today").to);
   const [movimientos, setMovimientos] = useState([]);
   const [cajas, setCajas] = useState([]);
+  const [comisionesServicios, setComisionesServicios] = useState(0);
+  const [comisionesProductos, setComisionesProductos] = useState(0);
   const [movementTypeFilter, setMovementTypeFilter] = useState("todos");
   const [cashFilter, setCashFilter] = useState("todos");
   const [isLoading, setIsLoading] = useState(false);
@@ -270,14 +280,24 @@ export default function FinanzasPage() {
       )
       .reduce((acc, movimiento) => acc + Number(movimiento.monto || 0), 0);
 
+    const comisionesTotales = roundMoney(
+      Number(comisionesServicios || 0) + Number(comisionesProductos || 0)
+    );
+
     const cajasAbiertas = cajas.filter((caja) => caja.estado !== "cerrada").length;
     const cajasCerradas = cajas.filter((caja) => caja.estado === "cerrada").length;
+
+    const netoCaja = roundMoney(ingresos + ajustes - salidas);
 
     return {
       ingresos: roundMoney(ingresos),
       salidas: roundMoney(salidas),
       ajustes: roundMoney(ajustes),
-      neto: roundMoney(ingresos + ajustes - salidas),
+      neto: netoCaja,
+      netoDespuesComisiones: roundMoney(netoCaja - comisionesTotales),
+      comisionesServicios: roundMoney(comisionesServicios),
+      comisionesProductos: roundMoney(comisionesProductos),
+      comisionesTotales,
       ingresosServicios: roundMoney(ingresosServicios),
       ingresosProductos: roundMoney(ingresosProductos),
       ingresosEfectivo: roundMoney(ingresosEfectivo),
@@ -286,7 +306,7 @@ export default function FinanzasPage() {
       cajasAbiertas,
       cajasCerradas,
     };
-  }, [movimientosConMedio, cajas]);
+  }, [movimientosConMedio, cajas, comisionesServicios, comisionesProductos]);
 
   const resumenPorTipoCaja = useMemo(
     () =>
@@ -363,8 +383,57 @@ export default function FinanzasPage() {
 
       if (cajasError) throw cajasError;
 
+      const fromTimestamp = `${dateFrom}T00:00:00-03:00`;
+      const toTimestamp = `${getNextDateValue(dateTo)}T00:00:00-03:00`;
+
+      const { data: atencionesData, error: atencionesError } = await supabase
+        .from("atenciones")
+        .select("id")
+        .eq("negocio_id", negocio.id)
+        .eq("sucursal_id", sucursal.id)
+        .gte("creado_en", fromTimestamp)
+        .lt("creado_en", toTimestamp);
+
+      if (atencionesError) throw atencionesError;
+
+      const atencionIds = (atencionesData ?? []).map(
+        (atencion) => atencion.id
+      );
+
+      let serviciosComision = 0;
+      let productosComision = 0;
+
+      if (atencionIds.length > 0) {
+        const [serviciosResult, productosResult] = await Promise.all([
+          supabase
+            .from("atencion_servicios")
+            .select("monto_comision")
+            .in("atencion_id", atencionIds),
+
+          supabase
+            .from("atencion_productos")
+            .select("monto_comision")
+            .in("atencion_id", atencionIds),
+        ]);
+
+        if (serviciosResult.error) throw serviciosResult.error;
+        if (productosResult.error) throw productosResult.error;
+
+        serviciosComision = (serviciosResult.data ?? []).reduce(
+          (acc, item) => acc + Number(item.monto_comision || 0),
+          0
+        );
+
+        productosComision = (productosResult.data ?? []).reduce(
+          (acc, item) => acc + Number(item.monto_comision || 0),
+          0
+        );
+      }
+
       setMovimientos(movimientosData ?? []);
       setCajas(cajasData ?? []);
+      setComisionesServicios(roundMoney(serviciosComision));
+      setComisionesProductos(roundMoney(productosComision));
     } catch (error) {
       console.error("Error cargando finanzas:", error);
       setFeedback("No se pudieron cargar las finanzas.");
@@ -395,8 +464,9 @@ export default function FinanzasPage() {
         <span className="badge">Finanzas</span>
         <h2>Resumen financiero</h2>
         <p>
-          Mirá ingresos, salidas, cajas y movimientos por período. La caja diaria
-          sirve para operar; esta vista sirve para entender cómo viene el negocio.
+          Mirá ingresos, salidas, comisiones, cajas y movimientos por período.
+          Las comisiones se descuentan del resultado estimado, pero no se registran
+          como salida de caja hasta que realmente se liquiden.
         </p>
       </section>
 
@@ -486,9 +556,26 @@ export default function FinanzasPage() {
       <section className="stats-grid finance-stats-grid">
         <article className="stat-card">
           <FiTrendingUp />
-          <span>Resultado neto</span>
+          <span>Resultado operativo estimado</span>
+          <strong>{formatCurrency(summary.netoDespuesComisiones)}</strong>
+          <small>Resultado de caja menos comisiones generadas</small>
+        </article>
+
+        <article className="stat-card">
+          <FiDollarSign />
+          <span>Resultado de caja</span>
           <strong>{formatCurrency(summary.neto)}</strong>
-          <small>Ingresos + ajustes - salidas</small>
+          <small>Ingresos + ajustes - salidas efectivas</small>
+        </article>
+
+        <article className="stat-card">
+          <FiBriefcase />
+          <span>Comisiones generadas</span>
+          <strong>{formatCurrency(summary.comisionesTotales)}</strong>
+          <small>
+            Servicios {formatCurrency(summary.comisionesServicios)} · Productos{" "}
+            {formatCurrency(summary.comisionesProductos)}
+          </small>
         </article>
 
         <article className="stat-card">
